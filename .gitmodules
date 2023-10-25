@@ -1,0 +1,9 @@
+[submodule "libdw1000"]
+	path = vendor/libdw1000
+	url = https://github.com/bitcraze/libdw1000.git
+[submodule "FreeRTOS-Kernel"]
+	path = vendor/FreeRTOS-Kernel
+	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+[submodule "stm32f7xx_hal_driver"]
+	path = vendor/stm32f7xx_hal_driver
+	url = https://github.com/STMicroelectronics/stm32f7xx_hal_driver
