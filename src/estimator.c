@@ -12,6 +12,8 @@ static tdoaMeasurement_t queue_array[MEASUREMENTS_QUEUE_SIZE];
 
 static TaskHandle_t task_handle = 0;
 
+static void kalmanTask(void* parameters);
+static void updateQueuedMeasurements(const uint32_t nowMs);
 
 void kalman_init() {
 

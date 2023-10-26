@@ -168,12 +168,12 @@ static void uwbTask(void* parameters) {
 
   algoOptions.currentRangingMode = lpsMode_auto;
 
-  systemWaitStart();
+  //systemWaitStart();
 
   while(1) {
-    xSemaphoreTake(algoSemaphore, portMAX_DELAY);
-    handleModeSwitch();
-    xSemaphoreGive(algoSemaphore);
+    // xSemaphoreTake(algoSemaphore, portMAX_DELAY);
+    // handleModeSwitch();
+    // xSemaphoreGive(algoSemaphore);
 
     if (ulTaskNotifyTake(pdTRUE, timeout / portTICK_PERIOD_MS) > 0) {
       do{
