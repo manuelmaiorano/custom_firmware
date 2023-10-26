@@ -5,15 +5,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "autoconf.h"
-#include "log.h"
-#include "param.h"
 #include "lpsTdoa2Tag.h"
 
 #include "stabilizer_types.h"
-#include "cfassert.h"
 
-#include "estimator.h"
+//#include "estimator.h"
 
 #include "physicalConstants.h"
 #include "tdoaEngineInstance.h"
@@ -154,8 +150,8 @@ static void sendLppShort(dwDevice_t *dev, lpsLppShortPacket_t *packet)
 }
 
 static bool rxcallback(dwDevice_t *dev) {
-  tdoaStats_t* stats = &tdoaEngineState.stats;
-  STATS_CNT_RATE_EVENT(&stats->packetsReceived);
+  //tdoaStats_t* stats = &tdoaEngineState.stats;
+  //STATS_CNT_RATE_EVENT(&stats->packetsReceived);
 
   int dataLength = dwGetDataLength(dev);
   packet_t rxPacket;

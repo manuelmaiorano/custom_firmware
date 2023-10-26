@@ -9,22 +9,20 @@
 #include "task.h"
 #include "queue.h"
 
-#include "deck.h"
-#include "system.h"
-#include "debug.h"
-#include "nvicconf.h"
-#include "estimator.h"
+#include "config.h"
 #include <stm32f7xx_hal_exti.h>
 #include <stm32f7xx_hal_spi.h>
 #include <stm32f7xx_hal_gpio.h>
 #include <stm32f7xx_ll_system.h>
-
-#include <locodeck.h>
+#include "gpio_utils.h"
+#include "locodeck.h"
 
 #include "lpsTdoa2Tag.h"
 
 
-#define CS_PIN DECK_GPIO_IO1
+const gpio_port_pin_t CS_PORT_PIN = {.port=GPIOB, .pin=GPIO_PIN_8 };
+const gpio_port_pin_t RESET_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_10};
+const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_11 };
 
 
 #define DEFAULT_RX_TIMEOUT 10000
@@ -182,7 +180,7 @@ static void uwbTask(void* parameters) {
         xSemaphoreTake(algoSemaphore, portMAX_DELAY);
         dwHandleInterrupt(dwm);
         xSemaphoreGive(algoSemaphore);
-      } while(digitalRead(GPIO_PIN_IRQ) != 0);
+      } while(digitalRead(IRQ_PORT_PIN) != 0);
     } else {
       xSemaphoreTake(algoSemaphore, portMAX_DELAY);
       timeout = algorithm->onEvent(dwm, eventTimeout);
@@ -222,11 +220,11 @@ static void spiWrite(dwDevice_t* dev, const void *header, size_t headerLength,
                                       const void* data, size_t dataLength)
 {
   spiBeginTransaction(spiSpeed);
-  digitalWrite(CS_PIN, LOW);
+  digitalWrite(CS_PORT_PIN, LOW);
   memcpy(spiTxBuffer, header, headerLength);
   memcpy(spiTxBuffer+headerLength, data, dataLength);
   spiExchange(headerLength+dataLength, spiTxBuffer, spiRxBuffer);
-  digitalWrite(CS_PIN, HIGH);
+  digitalWrite(CS_PORT_PIN, HIGH);
   spiEndTransaction();
   //STATS_CNT_RATE_EVENT(&spiWriteCount);
 }
@@ -235,12 +233,12 @@ static void spiRead(dwDevice_t* dev, const void *header, size_t headerLength,
                                      void* data, size_t dataLength)
 {
   spiBeginTransaction(spiSpeed);
-  digitalWrite(CS_PIN, LOW);
+  digitalWrite(CS_PORT_PIN, LOW);
   memcpy(spiTxBuffer, header, headerLength);
   memset(spiTxBuffer+headerLength, 0, dataLength);
   spiExchange(headerLength+dataLength, spiTxBuffer, spiRxBuffer);
   memcpy(data, spiRxBuffer+headerLength, dataLength);
-  digitalWrite(CS_PIN, HIGH);
+  digitalWrite(CS_PORT_PIN, HIGH);
   spiEndTransaction();
   //STATS_CNT_RATE_EVENT(&spiReadCount);
 }
@@ -304,14 +302,14 @@ static void dwm1000Init()
   HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
 
   // Init pins
-  pinMode(CS_PIN, OUTPUT);
-  pinMode(GPIO_PIN_RESET, OUTPUT);
-  pinMode(GPIO_PIN_IRQ, INPUT);
+  pinMode(CS_PORT_PIN, OUTPUT);
+  pinMode(RESET_PORT_PIN, OUTPUT);
+  pinMode(IRQ_PORT_PIN, INPUT);
 
   // Reset the DW1000 chip
-  digitalWrite(GPIO_PIN_RESET, 0);
+  digitalWrite(RESET_PORT_PIN, 0);
   vTaskDelay(M2T(10));
-  digitalWrite(GPIO_PIN_RESET, 1);
+  digitalWrite(RESET_PORT_PIN, 1);
   vTaskDelay(M2T(10));
 
   // Initialize the driver
