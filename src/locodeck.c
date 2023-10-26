@@ -72,7 +72,7 @@ static QueueHandle_t lppShortQueue;
 static uint32_t timeout;
 
 
-static void buildAnchorMemList(const uint32_t memAddr, const uint8_t readLen, uint8_t* dest, const uint32_t pageBase_address, const uint8_t anchorCount, const uint8_t unsortedAnchorList[]);
+//static void buildAnchorMemList(const uint32_t memAddr, const uint8_t readLen, uint8_t* dest, const uint32_t pageBase_address, const uint8_t anchorCount, const uint8_t unsortedAnchorList[]);
 
 static void txCallback(dwDevice_t *dev)
 {
@@ -108,20 +108,20 @@ static void rxFailedCallback(dwDevice_t * dev) {
 //   return result;
 // }
 
-static void autoModeSearchTryMode(const lpsMode_t newMode, const uint32_t now) {
-  // Set up next time to check
-  algoOptions.nextSwitchTick = now + LPS_AUTO_MODE_SWITCH_PERIOD;
-  switchToMode(newMode);
-}
+// static void autoModeSearchTryMode(const lpsMode_t newMode, const uint32_t now) {
+//   // Set up next time to check
+//   algoOptions.nextSwitchTick = now + LPS_AUTO_MODE_SWITCH_PERIOD;
+//   switchToMode(newMode);
+// }
 
-static lpsMode_t autoModeSearchGetNextMode() {
-  lpsMode_t newMode = algoOptions.currentRangingMode + 1;
-  if (newMode > LPS_NUMBER_OF_ALGORITHMS) {
-    newMode = lpsMode_TWR;
-  }
+// static lpsMode_t autoModeSearchGetNextMode() {
+//   lpsMode_t newMode = algoOptions.currentRangingMode + 1;
+//   if (newMode > LPS_NUMBER_OF_ALGORITHMS) {
+//     newMode = lpsMode_TWR;
+//   }
 
-  return newMode;
-}
+//   return newMode;
+// }
 
 // static void processAutoModeSwitching() {
 //   uint32_t now = xTaskGetTickCount();
@@ -145,10 +145,10 @@ static lpsMode_t autoModeSearchGetNextMode() {
 //   }
 // }
 
-static void resetAutoSearchMode() {
-  algoOptions.modeAutoSearchActive = true;
-  algoOptions.modeAutoSearchDoInitialize = true;
-}
+// static void resetAutoSearchMode() {
+//   algoOptions.modeAutoSearchActive = true;
+//   algoOptions.modeAutoSearchDoInitialize = true;
+// }
 
 // static void handleModeSwitch() {
 //   if (algoOptions.userRequestedMode == lpsMode_auto) {
@@ -243,11 +243,7 @@ static void spiRead(dwDevice_t* dev, const void *header, size_t headerLength,
   //STATS_CNT_RATE_EVENT(&spiReadCount);
 }
 
-#if CONFIG_DECK_LOCODECK_USE_ALT_PINS
-  void __attribute__((used)) EXTI5_Callback(void)
-#else
-  void __attribute__((used)) EXTI11_Callback(void)
-#endif
+void __attribute__((used)) EXTI11_Callback(void)
   {
     portBASE_TYPE  xHigherPriorityTaskWoken = pdFALSE;
 
@@ -318,7 +314,6 @@ static void dwm1000Init()
   int result = dwConfigure(dwm);
   if (result != 0) {
     isInit = false;
-    DEBUG_PRINT("Failed to configure DW1000!\r\n");
     return;
   }
 
@@ -336,21 +331,12 @@ static void dwm1000Init()
   dwSetDefaults(dwm);
 
 
-  #ifdef CONFIG_DECK_LOCO_LONGER_RANGE
-  dwEnableMode(dwm, MODE_SHORTDATA_MID_ACCURACY);
-  #else
   dwEnableMode(dwm, MODE_SHORTDATA_FAST_ACCURACY);
-  #endif
 
   dwSetChannel(dwm, CHANNEL_2);
   dwSetPreambleCode(dwm, PREAMBLE_CODE_64MHZ_9);
 
-  #ifdef CONFIG_DECK_LOCO_FULL_TX_POWER
-  dwUseSmartPower(dwm, false);
-  dwSetTxPower(dwm, 0x1F1F1F1Ful);
-  #else
   dwUseSmartPower(dwm, true);
-  #endif
 
   dwSetReceiveWaitTimeout(dwm, DEFAULT_RX_TIMEOUT);
 
