@@ -32,7 +32,7 @@ void estimatorEnqueueTDOA(const tdoaMeasurement_t *measurement) {
 }
 
 bool estimatorDequeue(tdoaMeasurement_t *measurement) {
-  return pdTRUE == xQueueReceive(measurementsQueue, measurement, 0);
+  return pdTRUE == xQueueReceive(measurementsQueue, measurement, portMAX_DELAY);
 }
 
 static void kalmanTask(void* parameters) {

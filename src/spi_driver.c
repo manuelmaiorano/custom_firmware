@@ -56,8 +56,8 @@ void spiBegin() {
     Gpio_init_structure.Pull = GPIO_PULLDOWN;
     Gpio_init_structure.Alternate = GPIO_AF5_SPI1;
 
-    Gpio_init_structure.Pin = GPIO_PIN_4;
-    HAL_GPIO_Init(GPIOA, &Gpio_init_structure);
+    // Gpio_init_structure.Pin = GPIO_PIN_4;
+    // HAL_GPIO_Init(GPIOA, &Gpio_init_structure);
 
     Gpio_init_structure.Pin = GPIO_PIN_5;
     HAL_GPIO_Init(GPIOA, &Gpio_init_structure);
@@ -85,7 +85,7 @@ static void spiDMAInit() {
     DMA_init_structure.MemDataAlignment = DMA_MDATAALIGN_BYTE;
     DMA_init_structure.MemInc = DMA_MINC_ENABLE;
     DMA_init_structure.Mode = DMA_NORMAL;
-
+    
     DMA_init_structure.PeriphBurst = DMA_PBURST_SINGLE;
     DMA_init_structure.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
     DMA_init_structure.PeriphInc = DMA_PINC_DISABLE;
@@ -95,7 +95,7 @@ static void spiDMAInit() {
     DMA_init_structure.Channel = DMA_CHANNEL_3;
     DMA_init_structure.Direction = DMA_MEMORY_TO_PERIPH;
     DMA_HandleTypeDef dma_handle_tx;
-    dma_handle_tx.Instance = DMA2_Stream3;
+    dma_handle_tx.Instance = DMA2_Stream5;
     dma_handle_tx.Init = DMA_init_structure;
     HAL_DMA_Init(&dma_handle_tx);
 
@@ -120,6 +120,10 @@ static void spiDMAInit() {
 static void spiConfigureWithSpeed(uint16_t baudRatePrescaler) {
 
     SPI_InitTypeDef spi_init_structure;
+
+    
+    SPI_I2S_DeInit(SPI1);
+    
     spi_init_structure.Direction = SPI_DIRECTION_2LINES;
     spi_init_structure.Mode = SPI_MODE_MASTER;
     spi_init_structure.DataSize = SPI_DATASIZE_8BIT;
@@ -154,8 +158,10 @@ bool spiExchange(size_t length, const uint8_t * data_tx, uint8_t * data_rx) {
   DMA_ITConfig(SPI_RX_DMA_STREAM, DMA_IT_TC, ENABLE);
 
   // Clear DMA Flags
-  DMA_ClearFlag(SPI_TX_DMA_STREAM, DMA_FLAG_FEIF1_5|DMA_FLAG_DMEIF1_5|DMA_FLAG_TEIF1_5|DMA_FLAG_HTIF1_5|DMA_FLAG_TCIF1_5);
-  DMA_ClearFlag(SPI_RX_DMA_STREAM, DMA_FLAG_FEIF0_4|DMA_FLAG_DMEIF0_4|DMA_FLAG_TEIF0_4|DMA_FLAG_HTIF0_4|DMA_FLAG_TCIF0_4);
+  //DMA_ClearFlag(SPI_TX_DMA_STREAM, DMA_FLAG_FEIF1_5|DMA_FLAG_DMEIF1_5|DMA_FLAG_TEIF1_5|DMA_FLAG_HTIF1_5|DMA_FLAG_TCIF1_5);
+  //DMA_ClearFlag(SPI_RX_DMA_STREAM, DMA_FLAG_FEIF0_4|DMA_FLAG_DMEIF0_4|DMA_FLAG_TEIF0_4|DMA_FLAG_HTIF0_4|DMA_FLAG_TCIF0_4);
+  clear_flags_start(SPI_TX_DMA_STREAM);
+  clear_flags_start(SPI_RX_DMA_STREAM);
 
   // Enable DMA Streams
   DMA_Cmd(SPI_TX_DMA_STREAM,ENABLE);
@@ -196,10 +202,11 @@ void __attribute__((used)) DMA2_Stream5_IRQHandler(void) {
 
   // Stop and cleanup DMA stream
   DMA_ITConfig(SPI_TX_DMA_STREAM, DMA_IT_TC, DISABLE);
-  DMA_ClearITPendingBit(SPI_TX_DMA_STREAM, SPI_TX_DMA_FLAG_TCIF);
+  //DMA_ClearITPendingBit(SPI_TX_DMA_STREAM, SPI_TX_DMA_FLAG_TCIF);
 
   // Clear stream flags
-  DMA_ClearFlag(SPI_TX_DMA_STREAM,SPI_TX_DMA_FLAG_TCIF);
+  //DMA_ClearFlag(SPI_TX_DMA_STREAM,SPI_TX_DMA_FLAG_TCIF);
+  clear_flag_tc(SPI_TX_DMA_STREAM);
 
   // Disable SPI DMA requests
   SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
@@ -221,10 +228,11 @@ void __attribute__((used)) DMA2_Stream0_IRQHandler(void) {
 
   // Stop and cleanup DMA stream
   DMA_ITConfig(SPI_RX_DMA_STREAM, DMA_IT_TC, DISABLE);
-  DMA_ClearITPendingBit(SPI_RX_DMA_STREAM, SPI_RX_DMA_FLAG_TCIF);
+  //DMA_ClearITPendingBit(SPI_RX_DMA_STREAM, SPI_RX_DMA_FLAG_TCIF);
 
   // Clear stream flags
-  DMA_ClearFlag(SPI_RX_DMA_STREAM,SPI_RX_DMA_FLAG_TCIF);
+  //DMA_ClearFlag(SPI_RX_DMA_STREAM,SPI_RX_DMA_FLAG_TCIF);
+  clear_flag_tc(SPI_RX_DMA_STREAM);
 
   // Disable SPI DMA requests
   SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);

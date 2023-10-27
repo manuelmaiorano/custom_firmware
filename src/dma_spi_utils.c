@@ -1,11 +1,20 @@
 #include "dma_spi_utils.h"
 
+typedef struct
+{
+  __IO uint32_t ISR;   /*!< DMA interrupt status register */
+  __IO uint32_t Reserved0;
+  __IO uint32_t IFCR;  /*!< DMA interrupt flag clear register */
+} DMA_Base_Registers;
 
 #define TRANSFER_IT_ENABLE_MASK (uint32_t)(DMA_SxCR_TCIE | DMA_SxCR_HTIE | \
                                            DMA_SxCR_TEIE | DMA_SxCR_DMEIE)
 #define TRANSFER_IT_MASK        (uint32_t)0x0F3C0F3C
 #define HIGH_ISR_MASK           (uint32_t)0x20000000
 #define RESERVED_MASK           (uint32_t)0x0F7D0F7D  
+
+static uint32_t calc_base_address(DMA_Stream_TypeDef* Instance);
+static uint32_t calc_stream_index(DMA_Stream_TypeDef* Instance);
 
 void SPI_I2S_DMACmd(SPI_TypeDef* SPIx, uint16_t SPI_I2S_DMAReq, FunctionalState NewState)
 {
@@ -141,4 +150,55 @@ void SPI_Cmd(SPI_TypeDef* SPIx, FunctionalState NewState)
     /* Disable the selected SPI peripheral */
     SPIx->CR1 &= (uint16_t)~((uint16_t)SPI_CR1_SPE);
   }
+}
+
+void SPI_I2S_DeInit(SPI_TypeDef* SPIx){
+
+  if (SPIx == SPI1) {
+    /* Enable SPI1 reset state */
+    __HAL_RCC_SPI1_FORCE_RESET();
+    /* Release SPI1 from reset state */
+    __HAL_RCC_SPI1_RELEASE_RESET();
+  }
+}
+
+void clear_flags_start(DMA_Stream_TypeDef* Instance) {
+  
+  uint32_t base_address = calc_base_address(Instance);
+  DMA_Base_Registers *regs = (DMA_Base_Registers *) base_address;
+  regs->IFCR = 0x3FU << calc_stream_index(Instance);
+
+}
+
+void clear_flag_tc(DMA_Stream_TypeDef* Instance) {
+  uint32_t base_address = calc_base_address(Instance);
+  DMA_Base_Registers *regs = (DMA_Base_Registers *) base_address;
+  regs->IFCR = DMA_FLAG_TCIF0_4 << calc_stream_index(Instance);
+
+}
+
+
+static uint32_t calc_base_address(DMA_Stream_TypeDef* Instance)
+{
+  uint32_t stream_number = (((uint32_t)Instance & 0xFFU) - 16U) / 24U;
+  uint32_t StreamBaseAddress;
+  
+  if (stream_number > 3U)
+  {
+    /* return pointer to HISR and HIFCR */
+    StreamBaseAddress = (((uint32_t)Instance & (uint32_t)(~0x3FFU)) + 4U);
+  }
+  else
+  {
+    /* return pointer to LISR and LIFCR */
+    StreamBaseAddress = ((uint32_t)Instance & (uint32_t)(~0x3FFU));
+  }
+  
+  return StreamBaseAddress;
+}
+
+static uint32_t calc_stream_index(DMA_Stream_TypeDef* Instance) {
+  uint32_t stream_number = (((uint32_t)Instance & 0xFFU) - 16U) / 24U;
+  static const uint8_t flagBitshiftOffset[8U] = {0U, 6U, 16U, 22U, 0U, 6U, 16U, 22U};
+  return flagBitshiftOffset[stream_number];
 }

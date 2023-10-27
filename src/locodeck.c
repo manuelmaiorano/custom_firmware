@@ -290,7 +290,7 @@ static void dwm1000Init()
   spiBegin();
 
   // Set up interrupt
-  LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTC, LL_SYSCFG_EXTI_LINE11);
+  //LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTC, LL_SYSCFG_EXTI_LINE11);
   
 
   exti_config.Line = EXTI_LINE_11;
