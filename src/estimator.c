@@ -3,6 +3,7 @@
 #include "queue.h"
 #include "task.h"
 #include "config.h"
+#include <SEGGER_SYSVIEW.h>
 
 
 #define MEASUREMENTS_QUEUE_SIZE (20)
@@ -54,6 +55,7 @@ static void updateQueuedMeasurements(const uint32_t nowMs) {
     tdoaMeasurement_t m;
     while (estimatorDequeue(&m)) {
         //
+        SEGGER_SYSVIEW_PrintfHost("%f", m.distanceDiff);
     }
 
 }
