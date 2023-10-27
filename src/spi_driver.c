@@ -1,13 +1,7 @@
 
 #include <stdbool.h>
-#include <stm32f7xx_hal_gpio.h>
-#include <stm32f7xx_hal_gpio_ex.h>
-#include <stm32f7xx_hal_spi.h>
-#include <stm32f7xx_hal_spi_ex.h>
-#include <stm32f7xx_hal_rcc.h>
-#include <stm32f7xx_hal_dma.h>
-#include <stm32f767xx.h>
-#include <stm32f7xx.h>
+#include <stm32f7xx_hal.h>
+
 #include <dma_spi_utils.h>
 
 #include "FreeRTOS.h"
@@ -38,6 +32,7 @@ static SemaphoreHandle_t rxComplete;
 static SemaphoreHandle_t spiMutex;
 
 static void spiConfigureWithSpeed(uint16_t baudRatePrescaler);
+static void spiDMAInit();
 
 void spiBegin() {
 
@@ -80,7 +75,7 @@ void spiBegin() {
     isInit = true;
 }
 
-static void spiDMAinit() {
+static void spiDMAInit() {
 
     DMA_InitTypeDef DMA_init_structure;
     

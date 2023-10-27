@@ -25,6 +25,8 @@ SRC_C += src/tdoaStorage.c
 SRC_C += src/tdoaEngineInstance.c
 SRC_C += src/gpio_utils.c
 SRC_C += src/system_stm32f7xx.c
+SRC_C += src/stm32f7xx_it.c
+SRC_C += src/syscalls.c
 # FreeRTOS
 SRC_C += vendor/FreeRTOS-Kernel/event_groups.c
 SRC_C += vendor/FreeRTOS-Kernel/list.c

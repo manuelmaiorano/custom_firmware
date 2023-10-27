@@ -234,8 +234,8 @@ static uint32_t onEvent(dwDevice_t *dev, uwbEvent_t event) {
     case eventPacketSent:
       // Service packet sent, the radio is back to receive automatically
       break;
-    default:
-      ASSERT_FAILED();
+    default: 
+      while(1) {}
   }
 
   uint32_t now = xTaskGetTickCount();
@@ -245,7 +245,7 @@ static uint32_t onEvent(dwDevice_t *dev, uwbEvent_t event) {
       rangingState |= (1 << anchor);
     }
   }
-  locoDeckSetRangingState(rangingState);
+  //locoDeckSetRangingState(rangingState);
 
   return MAX_TIMEOUT;
 }
@@ -281,7 +281,7 @@ static void Initialize(dwDevice_t *dev) {
 
   lppPacketToSend = false;
 
-  locoDeckSetRangingState(0);
+  //locoDeckSetRangingState(0);
   dwSetReceiveWaitTimeout(dev, TDOA2_RECEIVE_TIMEOUT);
 
   dwCommitConfiguration(dev);

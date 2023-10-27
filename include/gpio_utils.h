@@ -2,7 +2,7 @@
 #define __DECK_UTILS_H__
 
 #include <stdint.h>
-#include <stm32f7xx_hal_gpio.h>
+#include <stm32f7xx_hal.h>
 
 #define LOW 0x0
 #define HIGH 0x1

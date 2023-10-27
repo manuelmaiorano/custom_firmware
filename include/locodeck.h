@@ -9,8 +9,7 @@
 #include "libdw1000.h"
 #include <stabilizer_types.h>
 
-static void dwm1000Init();
-
+void init_loco_deck();
 // Timestamp counter frequency
 #define LOCODECK_TS_FREQ (499.2e6 * 128)
 

@@ -2,7 +2,9 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <stm32f7xx.h>
+#include <stm32f7xx_hal.h>
+#include <stm32f7xx_ll_system.h>
+
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -10,14 +12,14 @@
 #include "queue.h"
 
 #include "config.h"
-#include <stm32f7xx_hal_exti.h>
-#include <stm32f7xx_hal_spi.h>
-#include <stm32f7xx_hal_gpio.h>
-#include <stm32f7xx_ll_system.h>
 #include "gpio_utils.h"
 #include "locodeck.h"
+#include "spi_driver.h"
+
 
 #include "lpsTdoa2Tag.h"
+
+static void dwm1000Init();
 
 
 const gpio_port_pin_t CS_PORT_PIN = {.port=GPIOB, .pin=GPIO_PIN_8 };
@@ -31,24 +33,24 @@ const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_11 };
 // As an option you can set a static position in this file and set
 // combinedAnchorPositionOk to enable sending the anchor rangings to the Kalman filter
 
-static lpsAlgoOptions_t algoOptions = {
-  // .userRequestedMode is the wanted algorithm, available as a parameter
-#if defined(CONFIG_DECK_LOCO_ALGORITHM_TDOA2)
-  .userRequestedMode = lpsMode_TDoA2,
-#elif defined(CONFIG_DECK_LOCO_ALGORITHM_TDOA3)
-  .userRequestedMode = lpsMode_TDoA3,
-#elif defined(CONFIG_DECK_LOCO_ALGORITHM_TWR)
-  .userRequestedMode = lpsMode_TWR,
-#else
-  .userRequestedMode = lpsMode_auto,
-#endif
-  // .currentRangingMode is the currently running algorithm, available as a log
-  // lpsMode_auto is an impossible mode which forces initialization of the requested mode
-  // at startup
-  .currentRangingMode = lpsMode_auto,
-  .modeAutoSearchActive = true,
-  .modeAutoSearchDoInitialize = true,
-};
+// static lpsAlgoOptions_t algoOptions = {
+//   // .userRequestedMode is the wanted algorithm, available as a parameter
+// #if defined(CONFIG_DECK_LOCO_ALGORITHM_TDOA2)
+//   .userRequestedMode = lpsMode_TDoA2,
+// #elif defined(CONFIG_DECK_LOCO_ALGORITHM_TDOA3)
+//   .userRequestedMode = lpsMode_TDoA3,
+// #elif defined(CONFIG_DECK_LOCO_ALGORITHM_TWR)
+//   .userRequestedMode = lpsMode_TWR,
+// #else
+//   .userRequestedMode = lpsMode_auto,
+// #endif
+//   // .currentRangingMode is the currently running algorithm, available as a log
+//   // lpsMode_auto is an impossible mode which forces initialization of the requested mode
+//   // at startup
+//   .currentRangingMode = lpsMode_auto,
+//   .modeAutoSearchActive = true,
+//   .modeAutoSearchDoInitialize = true,
+// };
 
 // struct {
 //   uwbAlgorithm_t *algorithm;
@@ -166,7 +168,7 @@ static void rxFailedCallback(dwDevice_t * dev) {
 static void uwbTask(void* parameters) {
   lppShortQueue = xQueueCreate(10, sizeof(lpsLppShortPacket_t));
 
-  algoOptions.currentRangingMode = lpsMode_auto;
+  //algoOptions.currentRangingMode = lpsMode_auto;
 
   //systemWaitStart();
 
@@ -351,22 +353,8 @@ static void dwm1000Init()
   isInit = true;
 }
 
-uint16_t locoDeckGetRangingState() {
-  return algoOptions.rangingState;
+
+void init_loco_deck() {
+  dwm1000Init();
 }
-
-void locoDeckSetRangingState(const uint16_t newState) {
-  algoOptions.rangingState = newState;
-}
-
-
-static bool dwm1000Test()
-{
-  if (!isInit) {
-    DEBUG_PRINT("Error while initializing DWM1000\n");
-  }
-
-  return isInit;
-}
-
 
