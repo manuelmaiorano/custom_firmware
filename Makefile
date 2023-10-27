@@ -2,14 +2,16 @@ BIN = output# Name of the output binary
 V = 1
 
 INC = -I$(SRC_DIR)/include
-INC += -I$(SRC_DIR)/vendor/FreeRTOS-Kernel/include
-INC += -I$(SRC_DIR)/vendor/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1
+INC += -I$(SRC_DIR)/Third_Party/FreeRTOS/Source/include
+INC += -I$(SRC_DIR)/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1
+INC += -I$(SRC_DIR)/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
 INC += -I$(SRC_DIR)/vendor/libdw1000/inc
 INC += -I$(SRC_DIR)/Drivers/STM32F7xx_HAL_Driver/Inc
 INC += -I$(SRC_DIR)/Drivers/STM32F7xx_HAL_Driver/Inc/Legacy
 INC += -I$(SRC_DIR)/Drivers/CMSIS/Include
 INC += -I$(SRC_DIR)/Drivers/CMSIS/Device/ST/STM32F7xx
 INC += -I$(SRC_DIR)/Drivers/CMSIS/Device/ST/STM32F7xx/Include
+INC += -I$(SRC_DIR)/Third_Party/SEGGER
 
 SRC_ASM = startup/startup_stm32f767xx.s
 
@@ -28,14 +30,17 @@ SRC_C += src/system_stm32f7xx.c
 SRC_C += src/stm32f7xx_it.c
 SRC_C += src/syscalls.c
 # FreeRTOS
-SRC_C += vendor/FreeRTOS-Kernel/event_groups.c
-SRC_C += vendor/FreeRTOS-Kernel/list.c
-SRC_C += vendor/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1/port.c
-SRC_C += vendor/FreeRTOS-Kernel/portable/MemMang/heap_4.c
-SRC_C += vendor/FreeRTOS-Kernel/queue.c
-SRC_C += vendor/FreeRTOS-Kernel/tasks.c
-SRC_C += vendor/FreeRTOS-Kernel/timers.c
-SRC_C += vendor/FreeRTOS-Kernel/stream_buffer.c
+SRC_C += Third_Party/FreeRTOS/Source/event_groups.c
+SRC_C += Third_Party/FreeRTOS/Source/list.c
+SRC_C += Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1/port.c
+SRC_C += Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c
+SRC_C += Third_Party/FreeRTOS/Source/queue.c
+SRC_C += Third_Party/FreeRTOS/Source/tasks.c
+SRC_C += Third_Party/FreeRTOS/Source/timers.c
+SRC_C += Third_Party/FreeRTOS/Source/stream_buffer.c
+SRC_C += Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
+#SEGGER
+
 # libdw1000
 SRC_C += vendor/libdw1000/src/libdw1000.c
 SRC_C += vendor/libdw1000/src/libdw1000Spi.c
@@ -64,6 +69,17 @@ SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_exti.c
 #SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_usb.c
 SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_spi.c
 SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma_ex.c
+
+SRC_ASM += Third_Party/SEGGER/SEGGER_RTT_ASM_ARMv7M.S
+SRC_C += Third_Party/SEGGER/SEGGER_RTT_Syscalls_IAR.c
+SRC_C += Third_Party/SEGGER/SEGGER_SYSVIEW.c
+SRC_C += Third_Party/SEGGER/SEGGER_SYSVIEW_Config_FreeRTOS.c
+SRC_C += Third_Party/SEGGER/SEGGER_RTT_printf.c
+SRC_C += Third_Party/SEGGER/SEGGER_RTT.c
+SRC_C += Third_Party/SEGGER/SEGGER_RTT_Syscalls_SES.c
+SRC_C += Third_Party/SEGGER/SEGGER_RTT_Syscalls_KEIL.c
+SRC_C += Third_Party/SEGGER/SEGGER_RTT_Syscalls_GCC.c
+SRC_C += Third_Party/SEGGER/SEGGER_SYSVIEW_FreeRTOS.c
 
 
 SRC_LD = STM32F767ZI_FLASH.ld

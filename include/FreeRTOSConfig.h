@@ -30,8 +30,6 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-#include <system_stm32f7xx.h>
-
 /*-----------------------------------------------------------
  * Application specific definitions.
  *
@@ -57,11 +55,11 @@
 #define configUSE_PREEMPTION                     1
 #define configSUPPORT_STATIC_ALLOCATION          1
 #define configSUPPORT_DYNAMIC_ALLOCATION         1
-#define configUSE_IDLE_HOOK                      0
-#define configUSE_TICK_HOOK                      0
+#define configUSE_IDLE_HOOK                      1
+#define configUSE_TICK_HOOK                      1
 #define configCPU_CLOCK_HZ                       ( SystemCoreClock )
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
-#define configMAX_PRIORITIES                     ( 56 )
+#define configMAX_PRIORITIES                     ( 4 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
 #define configTOTAL_HEAP_SIZE                    ((size_t)15360)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
@@ -72,9 +70,6 @@
 #define configUSE_RECURSIVE_MUTEXES              1
 #define configUSE_COUNTING_SEMAPHORES            1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION  0
-#define configKERNEL_PROVIDED_STATIC_MEMORY 1
-#define portUSING_MPU_WRAPPERS 0
-
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES                    0
@@ -102,6 +97,7 @@ to exclude the API function. */
 #define INCLUDE_eTaskGetState   			1
 #define INCLUDE_pxTaskGetStackStart			1
 #define INCLUDE_xTaskGetIdleTaskHandle		1
+#define configUSE_TASK_NOTIFICATIONS        1
 
 
 /* Run time and task stats gathering related definitions. */
@@ -158,8 +154,8 @@ standard names. */
 /* USER CODE BEGIN Defines */   	      
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
 
+//#include "SEGGER_SYSVIEW_FreeRTOS.h"
 /* USER CODE END Defines */ 
-
 #define M2T(X) ((unsigned int)(X))
 #define F2T(X) ((unsigned int)((configTICK_RATE_HZ/(X))))
 #define T2M(X) ((unsigned int)(X))
