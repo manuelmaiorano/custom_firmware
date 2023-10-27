@@ -29,6 +29,7 @@ SRC_C += src/gpio_utils.c
 SRC_C += src/system_stm32f7xx.c
 SRC_C += src/stm32f7xx_it.c
 SRC_C += src/syscalls.c
+SRC_C += src/stm32f7xx_hal_msp.c
 # FreeRTOS
 SRC_C += Third_Party/FreeRTOS/Source/event_groups.c
 SRC_C += Third_Party/FreeRTOS/Source/list.c

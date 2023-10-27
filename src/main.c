@@ -1,6 +1,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <stm32f7xx_hal.h>
+#include <SEGGER_SYSVIEW.h>
 
 
 
@@ -12,7 +13,10 @@ int main(void) {
 
     HAL_Init();
     SystemClock_Config();
+
+	SEGGER_SYSVIEW_Conf();
     NVIC_SetPriorityGrouping(0);
+
 
     init_loco_deck();
 
