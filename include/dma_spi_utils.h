@@ -3,7 +3,6 @@
 #include <stm32f7xx_hal_spi.h>
 
 
-typedef enum {DISABLE = 0, ENABLE = !DISABLE} FunctionalState;
 
 
 

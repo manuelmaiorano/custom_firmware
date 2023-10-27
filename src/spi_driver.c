@@ -37,6 +37,8 @@ static SemaphoreHandle_t txComplete;
 static SemaphoreHandle_t rxComplete;
 static SemaphoreHandle_t spiMutex;
 
+static void spiConfigureWithSpeed(uint16_t baudRatePrescaler);
+
 void spiBegin() {
 
 

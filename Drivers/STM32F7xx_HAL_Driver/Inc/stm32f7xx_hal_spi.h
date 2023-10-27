@@ -848,3 +848,4 @@ uint32_t             HAL_SPI_GetError(SPI_HandleTypeDef *hspi);
 #endif
 
 #endif /* STM32F7xx_HAL_SPI_H */
+
