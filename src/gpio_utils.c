@@ -6,8 +6,6 @@ void pinMode(const gpio_port_pin_t port_pin,  const uint32_t mode)
 {
   //RCC_AHB1PeriphClockCmd(deckGPIOMapping[pin.id].periph, ENABLE);
 
-  __GPIOC_CLK_ENABLE();
-
   GPIO_InitTypeDef GPIO_InitStructure = {0};
 
   GPIO_InitStructure.Pin = port_pin.pin;

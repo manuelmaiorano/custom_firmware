@@ -49,7 +49,7 @@ void spiBegin() {
 
     __GPIOA_CLK_ENABLE();
 
-    __DMA1_CLK_ENABLE();
+    __DMA2_CLK_ENABLE();
 
     Gpio_init_structure.Mode = GPIO_MODE_AF_PP;
     Gpio_init_structure.Speed = GPIO_SPEED_FAST;
@@ -112,7 +112,7 @@ static void spiDMAInit() {
     NVIC_EnableIRQ(DMA2_Stream5_IRQn);
 
     NVIC_SetPriority(DMA2_Stream0_IRQn, 7);
-    NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+    NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 
 }
@@ -162,6 +162,8 @@ bool spiExchange(size_t length, const uint8_t * data_tx, uint8_t * data_rx) {
   // Enable SPI DMA Interrupts
   DMA_ITConfig(SPI_TX_DMA_STREAM, DMA_IT_TC, ENABLE);
   DMA_ITConfig(SPI_RX_DMA_STREAM, DMA_IT_TC, ENABLE);
+  DMA2_Stream5->CR |= DMA_SxCR_TCIE;
+  DMA2_Stream0->CR |= DMA_SxCR_TCIE;	
 
   // Clear DMA Flags
   //DMA_ClearFlag(SPI_TX_DMA_STREAM, DMA_FLAG_FEIF1_5|DMA_FLAG_DMEIF1_5|DMA_FLAG_TEIF1_5|DMA_FLAG_HTIF1_5|DMA_FLAG_TCIF1_5);
@@ -203,7 +205,7 @@ void spiEndTransaction()
 }
 
 
-void __attribute__((used)) DMA2_Stream5_IRQHandler(void) {
+void DMA2_Stream5_IRQHandler(void) {
   portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
   // Stop and cleanup DMA stream
@@ -229,7 +231,7 @@ void __attribute__((used)) DMA2_Stream5_IRQHandler(void) {
   }
 }
 
-void __attribute__((used)) DMA2_Stream0_IRQHandler(void) {
+void DMA2_Stream0_IRQHandler(void) {
   portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
   // Stop and cleanup DMA stream

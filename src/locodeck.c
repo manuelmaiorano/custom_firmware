@@ -300,6 +300,8 @@ static void dwm1000Init()
   HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
 
   // Init pins
+  __GPIOC_CLK_ENABLE();
+  __GPIOB_CLK_ENABLE();
   pinMode(CS_PORT_PIN, OUTPUT);
   pinMode(RESET_PORT_PIN, OUTPUT);
   pinMode(IRQ_PORT_PIN, INPUT);
