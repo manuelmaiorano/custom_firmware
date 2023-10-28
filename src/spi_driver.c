@@ -97,7 +97,7 @@ static void spiDMAInit() {
     DMA_HandleTypeDef dma_handle_tx;
     dma_handle_tx.Instance = DMA2_Stream5;
     dma_handle_tx.Init = DMA_init_structure;
-    HAL_DMA_Init(&dma_handle_tx);
+    assert_param(HAL_DMA_Init(&dma_handle_tx) == HAL_OK);
 
     // Configure RX DMA
     DMA_init_structure.Channel = DMA_CHANNEL_3;
@@ -105,7 +105,7 @@ static void spiDMAInit() {
     DMA_HandleTypeDef dma_handle_rx;
     dma_handle_rx.Instance = DMA2_Stream0;
     dma_handle_rx.Init = DMA_init_structure;
-    HAL_DMA_Init(&dma_handle_rx);
+    assert_param(HAL_DMA_Init(&dma_handle_rx) == HAL_OK);
 
     // Configure interrupts
     NVIC_SetPriority(DMA2_Stream5_IRQn, 7);
@@ -131,13 +131,16 @@ static void spiConfigureWithSpeed(uint16_t baudRatePrescaler) {
     spi_init_structure.CLKPhase = SPI_PHASE_1EDGE;
     spi_init_structure.NSS = SPI_NSS_SOFT;
     spi_init_structure.FirstBit = SPI_FIRSTBIT_MSB;
+    spi_init_structure.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
     spi_init_structure.CRCPolynomial = 0;
     spi_init_structure.BaudRatePrescaler = baudRatePrescaler;
+    spi_init_structure.NSSPMode = SPI_NSS_PULSE_DISABLE;
+    spi_init_structure.TIMode = SPI_TIMODE_DISABLE;
     
     SPI_HandleTypeDef spi_handle;
     spi_handle.Init = spi_init_structure;
     spi_handle.Instance = SPI1;
-    HAL_SPI_Init(&spi_handle);
+    assert_param(HAL_SPI_Init(&spi_handle) == HAL_OK);
 }
 
 bool spiTest(void)
@@ -149,9 +152,12 @@ bool spiExchange(size_t length, const uint8_t * data_tx, uint8_t * data_rx) {
   // DMA already configured, just need to set memory addresses
   SPI_TX_DMA_STREAM->M0AR = (uint32_t)data_tx;
   SPI_TX_DMA_STREAM->NDTR = length;
+  SPI_TX_DMA_STREAM->PAR = (uint32_t) (&(SPI1->DR)) ;
 
   SPI_RX_DMA_STREAM->M0AR = (uint32_t)data_rx;
   SPI_RX_DMA_STREAM->NDTR = length;
+  SPI_RX_DMA_STREAM->PAR = (uint32_t) (&(SPI1->DR)) ;
+
 
   // Enable SPI DMA Interrupts
   DMA_ITConfig(SPI_TX_DMA_STREAM, DMA_IT_TC, ENABLE);

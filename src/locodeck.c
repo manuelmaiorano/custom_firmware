@@ -1,4 +1,3 @@
-#define DEBUG_MODULE "DWM"
 
 #include <stdint.h>
 #include <string.h>
@@ -296,6 +295,7 @@ static void dwm1000Init()
   exti_config.Line = EXTI_LINE_11;
   exti_config.Mode = EXTI_MODE_INTERRUPT;
   exti_config.Trigger = EXTI_TRIGGER_RISING;
+  exti_config.GPIOSel = EXTI_GPIOC;
   exti_handle.Line = EXTI_LINE_11;
   HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
 
@@ -306,9 +306,11 @@ static void dwm1000Init()
 
   // Reset the DW1000 chip
   digitalWrite(RESET_PORT_PIN, 0);
+  //HAL_Delay(10);
   vTaskDelay(M2T(10));
   digitalWrite(RESET_PORT_PIN, 1);
   vTaskDelay(M2T(10));
+  //HAL_Delay(10);
 
   // Initialize the driver
   dwInit(dwm, &dwOps);       // Init libdw
@@ -347,10 +349,11 @@ static void dwm1000Init()
 
   algoSemaphore= xSemaphoreCreateMutex();
 
-  xTaskCreate(uwbTask, LPS_DECK_TASK_NAME, LPS_DECK_STACKSIZE, NULL,
-                    LPS_DECK_TASK_PRI, &uwbTaskHandle);
+  assert_param(xTaskCreate(uwbTask, LPS_DECK_TASK_NAME, LPS_DECK_STACKSIZE, NULL,
+                    LPS_DECK_TASK_PRI, &uwbTaskHandle) == pdPASS);
 
-  isInit = true;
+  isInit = false;
+
 }
 
 

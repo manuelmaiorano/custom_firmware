@@ -4,9 +4,12 @@
 #include "task.h"
 #include "config.h"
 #include <SEGGER_SYSVIEW.h>
+#include <stm32f7xx_hal.h>
+#include "locodeck.h"
 
 
-#define MEASUREMENTS_QUEUE_SIZE (20)
+
+#define MEASUREMENTS_QUEUE_SIZE (21)
 static xQueueHandle measurementsQueue;
 static StaticQueue_t queue_structure;
 static tdoaMeasurement_t queue_array[MEASUREMENTS_QUEUE_SIZE];
@@ -20,8 +23,8 @@ void kalman_init() {
 
     measurementsQueue = xQueueCreateStatic(MEASUREMENTS_QUEUE_SIZE, sizeof(tdoaMeasurement_t), queue_array, &queue_structure);
 
-    xTaskCreate(kalmanTask, KALMAN_TASK_NAME, KALMAN_TASK_STACKSIZE, NULL,
-                    KALMAN_TASK_PRI, &task_handle);
+    assert_param(xTaskCreate(kalmanTask, KALMAN_TASK_NAME, KALMAN_TASK_STACKSIZE, NULL,
+                    KALMAN_TASK_PRI, &task_handle) == pdPASS);
 
 }
 void estimatorEnqueueTDOA(const tdoaMeasurement_t *measurement) {
@@ -36,6 +39,9 @@ bool estimatorDequeue(tdoaMeasurement_t *measurement) {
 }
 
 static void kalmanTask(void* parameters) {
+
+    init_loco_deck();
+
 
     uint32_t nowMs = T2M(xTaskGetTickCount());
     uint32_t nextPredictionMs = nowMs;

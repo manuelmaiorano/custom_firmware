@@ -18,8 +18,6 @@ int main(void) {
     NVIC_SetPriorityGrouping(0);
 
 
-    init_loco_deck();
-
     kalman_init();
 
     //start the scheduler - shouldn't return unless there's a problem
