@@ -21,8 +21,8 @@
 static void dwm1000Init();
 
 
-const gpio_port_pin_t CS_PORT_PIN = {.port=GPIOB, .pin=GPIO_PIN_8 };
-const gpio_port_pin_t RESET_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_10};
+const gpio_port_pin_t CS_PORT_PIN = {.port=GPIOB, .pin=GPIO_PIN_1};
+const gpio_port_pin_t RESET_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_9};
 const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_11 };
 
 
@@ -214,7 +214,7 @@ bool lpsGetLppShort(lpsLppShortPacket_t* shortPacket)
 
 static uint8_t spiTxBuffer[196];
 static uint8_t spiRxBuffer[196];
-static uint16_t spiSpeed = SPI_BAUDRATEPRESCALER_64;
+static uint16_t spiSpeed = SPI_BAUDRATE_2MHZ;
 
 /************ Low level ops for libdw **********/
 static void spiWrite(dwDevice_t* dev, const void *header, size_t headerLength,
@@ -260,11 +260,11 @@ static void spiSetSpeed(dwDevice_t* dev, dwSpiSpeed_t speed)
 {
   if (speed == dwSpiSpeedLow)
   {
-    spiSpeed = SPI_BAUDRATEPRESCALER_64;
+    spiSpeed = SPI_BAUDRATE_2MHZ;
   }
   else if (speed == dwSpiSpeedHigh)
   {
-    spiSpeed = SPI_BAUDRATEPRESCALER_4;
+    spiSpeed = SPI_BAUDRATE_21MHZ;
   }
 }
 
@@ -354,7 +354,7 @@ static void dwm1000Init()
   assert_param(xTaskCreate(uwbTask, LPS_DECK_TASK_NAME, LPS_DECK_STACKSIZE, NULL,
                     LPS_DECK_TASK_PRI, &uwbTaskHandle) == pdPASS);
 
-  isInit = false;
+  isInit = true;
 
 }
 
