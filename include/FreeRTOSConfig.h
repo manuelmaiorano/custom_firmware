@@ -154,7 +154,7 @@ standard names. */
 /* USER CODE BEGIN Defines */   	      
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
 
-//#include "SEGGER_SYSVIEW_FreeRTOS.h"
+#include "SEGGER_SYSVIEW_FreeRTOS.h"
 /* USER CODE END Defines */ 
 #define M2T(X) ((unsigned int)(X))
 #define F2T(X) ((unsigned int)((configTICK_RATE_HZ/(X))))
