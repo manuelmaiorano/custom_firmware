@@ -2,12 +2,16 @@
 #include <task.h>
 #include <stm32f7xx_hal.h>
 #include <SEGGER_SYSVIEW.h>
+#include "gpio_utils.h"
 
 
 
 #include "locodeck.h"
 #include "estimator.h"
 
+TaskHandle_t ledtask_handle;
+
+void led_task(void* param);
 
 int main(void) {
 
@@ -20,6 +24,8 @@ int main(void) {
 
     kalman_init();
 
+	assert_param(xTaskCreate(led_task, "ledtask", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &ledtask_handle) == pdPASS);
+
     //start the scheduler - shouldn't return unless there's a problem
 	vTaskStartScheduler();
 
@@ -28,6 +34,23 @@ int main(void) {
 	{
 	}
 
+}
+
+void led_task(void* param) {
+
+	__GPIOB_CLK_ENABLE();
+	const gpio_port_pin_t ledgpio = {.port=GPIOB, .pin=GPIO_PIN_0};
+	pinMode(ledgpio, OUTPUT);
+
+	while (1)
+	{
+		SEGGER_SYSVIEW_PrintfHost("LedTaskRunning\n");
+		digitalWrite(ledgpio, 1);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		digitalWrite(ledgpio, 0);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+	
 }
 
 
