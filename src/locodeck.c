@@ -14,6 +14,7 @@
 #include "gpio_utils.h"
 #include "locodeck.h"
 #include "spi_driver.h"
+#include "exti_utils.h"
 
 
 #include "lpsTdoa2Tag.h"
@@ -244,7 +245,7 @@ static void spiRead(dwDevice_t* dev, const void *header, size_t headerLength,
   //STATS_CNT_RATE_EVENT(&spiReadCount);
 }
 
-void __attribute__((used)) EXTI11_Callback(void)
+void EXTI11_Callback(void)
   {
     portBASE_TYPE  xHigherPriorityTaskWoken = pdFALSE;
 
@@ -255,6 +256,18 @@ void __attribute__((used)) EXTI11_Callback(void)
       portYIELD();
     }
   }
+
+void  EXTI15_10_IRQHandler(void)
+{
+  NVIC_ClearPendingIRQ(EXTI15_10_IRQn);
+
+
+  if (EXTI_GetITStatus(((uint32_t)0x00800) ) == SET) {
+    //EXTI_ClearITPendingBit(EXTI_LINE_11);
+    EXTI->PR = ((uint32_t)0x00800) ;
+    EXTI11_Callback();
+  }
+}
 
 static void spiSetSpeed(dwDevice_t* dev, dwSpiSpeed_t speed)
 {
@@ -290,7 +303,7 @@ static void dwm1000Init()
 
   // Set up interrupt
   //LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTC, LL_SYSCFG_EXTI_LINE11);
-  
+  //RCC->AHB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
   exti_config.Line = EXTI_LINE_11;
   exti_config.Mode = EXTI_MODE_INTERRUPT;
@@ -306,6 +319,9 @@ static void dwm1000Init()
   pinMode(RESET_PORT_PIN, OUTPUT);
   pinMode(IRQ_PORT_PIN, INPUT);
 
+  NVIC_SetPriority(EXTI15_10_IRQn, 10);
+  NVIC_EnableIRQ(EXTI15_10_IRQn);
+
   // Reset the DW1000 chip
   digitalWrite(RESET_PORT_PIN, 0);
   //HAL_Delay(10);
@@ -313,6 +329,8 @@ static void dwm1000Init()
   digitalWrite(RESET_PORT_PIN, 1);
   vTaskDelay(M2T(10));
   //HAL_Delay(10);
+
+  //digitalWrite(IRQ_PORT_PIN, 1);
 
   // Initialize the driver
   dwInit(dwm, &dwOps);       // Init libdw

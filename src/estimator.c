@@ -6,6 +6,7 @@
 #include <SEGGER_SYSVIEW.h>
 #include <stm32f7xx_hal.h>
 #include "locodeck.h"
+#include "gpio_utils.h"
 
 
 
@@ -42,6 +43,8 @@ static void kalmanTask(void* parameters) {
 
     init_loco_deck();
 
+    //gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_11 };
+    //digitalWrite(IRQ_PORT_PIN, 1);
 
     uint32_t nowMs = T2M(xTaskGetTickCount());
     uint32_t nextPredictionMs = nowMs;
