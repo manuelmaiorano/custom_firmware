@@ -24,9 +24,9 @@ static void dwm1000Init();
 
 const gpio_port_pin_t CS_PORT_PIN = {.port=GPIOB, .pin=GPIO_PIN_1};
 const gpio_port_pin_t RESET_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_9};
-const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_11 };
+const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_12 };
 
-
+#define EXTI_LINE EXTI_LINE_12
 #define DEFAULT_RX_TIMEOUT 10000
 
 // The anchor position can be set using parameters
@@ -261,11 +261,20 @@ void  EXTI15_10_IRQHandler(void)
 {
   NVIC_ClearPendingIRQ(EXTI15_10_IRQn);
 
+  uint32_t regval;
+  uint32_t maskline;
 
-  if (EXTI_GetITStatus(((uint32_t)0x00800) ) == SET) {
-    //EXTI_ClearITPendingBit(EXTI_LINE_11);
-    EXTI->PR = ((uint32_t)0x00800) ;
-    EXTI11_Callback();
+  /* Compute line mask */
+  maskline = (1uL << (EXTI_LINE & EXTI_PIN_MASK));
+
+
+  regval = (EXTI->PR & maskline);
+  if (regval != 0x00u)
+  {  //EXTI_ClearITPendingBit(EXTI_LINE_11);
+    EXTI->PR = maskline;
+    if (isInit) {
+        EXTI11_Callback();
+    }
   }
 }
 
@@ -305,11 +314,11 @@ static void dwm1000Init()
   //LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTC, LL_SYSCFG_EXTI_LINE11);
   //RCC->AHB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
-  exti_config.Line = EXTI_LINE_11;
+  exti_config.Line = EXTI_LINE;
   exti_config.Mode = EXTI_MODE_INTERRUPT;
   exti_config.Trigger = EXTI_TRIGGER_RISING;
   exti_config.GPIOSel = EXTI_GPIOC;
-  exti_handle.Line = EXTI_LINE_11;
+  exti_handle.Line = EXTI_LINE;
   HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
 
   // Init pins

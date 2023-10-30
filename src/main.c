@@ -40,6 +40,8 @@ void led_task(void* param) {
 
 	__GPIOB_CLK_ENABLE();
 	const gpio_port_pin_t ledgpio = {.port=GPIOB, .pin=GPIO_PIN_0};
+	EXTI_HandleTypeDef handle;
+	handle.Line = EXTI_LINE_11;
 	pinMode(ledgpio, OUTPUT);
 
 	while (1)
@@ -49,6 +51,7 @@ void led_task(void* param) {
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		digitalWrite(ledgpio, 0);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		//HAL_EXTI_GenerateSWI(&handle);
 	}
 	
 }
