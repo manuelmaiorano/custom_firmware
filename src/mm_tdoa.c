@@ -1,6 +1,5 @@
 
 #include "mm_tdoa.h"
-#include "test_support.h"
 
 #if CONFIG_ESTIMATOR_KALMAN_TDOA_OUTLIERFILTER_FALLBACK
 #include "outlierFilterTdoaSteps.h"

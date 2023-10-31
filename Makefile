@@ -18,21 +18,25 @@ INC += -I$(SRC_DIR)/CMSIS-DSP/PrivateInclude
 SRC_ASM = startup/startup_stm32f767xx.s
 
 SRC_C = src/main.c
+SRC_C += src/axis3fSubSampler.c
 SRC_C += src/estimator.c
+SRC_C += src/exti_utils.c
+SRC_C += src/stm32f7xx_hal_msp.c
 SRC_C += src/tdoaEngine.c
+SRC_C += src/kalman_core.c
+SRC_C += src/mm_tdoa.c
+SRC_C += src/syscalls.c
 SRC_C += src/locodeck.c
 SRC_C += src/clockCorrectionEngine.c
+SRC_C += src/stm32f7xx_it.c
 SRC_C += src/dma_spi_utils.c
 SRC_C += src/spi_driver.c
 SRC_C += src/lpsTdoa2Tag.c
 SRC_C += src/tdoaStorage.c
 SRC_C += src/tdoaEngineInstance.c
-SRC_C += src/gpio_utils.c
 SRC_C += src/system_stm32f7xx.c
-SRC_C += src/stm32f7xx_it.c
-SRC_C += src/syscalls.c
-SRC_C += src/stm32f7xx_hal_msp.c
-SRC_C += src/exti_utils.c
+SRC_C += src/gpio_utils.c
+SRC_C += src/outlierFilterTdoa.c
 # FreeRTOS
 SRC_C += Third_Party/FreeRTOS/Source/event_groups.c
 SRC_C += Third_Party/FreeRTOS/Source/list.c
@@ -89,6 +93,10 @@ SRC_C += CMSIS-DSP/Source/BasicMathFunctions/BasicMathFunctions.c
 SRC_C += CMSIS-DSP/Source/BasicMathFunctions/BasicMathFunctionsF16.c
 SRC_C += CMSIS-DSP/Source/MatrixFunctions/MatrixFunctions.c
 SRC_C += CMSIS-DSP/Source/MatrixFunctions/MatrixFunctionsF16.c
+SRC_C += CMSIS-DSP/Source/FastMathFunctions/FastMathFunctions.c
+SRC_C += CMSIS-DSP/Source/FastMathFunctions/FastMathFunctionsF16.c
+SRC_C += CMSIS-DSP/Source/CommonTables/CommonTables.c
+SRC_C += CMSIS-DSP/Source/CommonTables/CommonTablesF16.c
 
 SRC_LD = STM32F767ZI_FLASH.ld
 
