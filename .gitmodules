@@ -1,3 +1,6 @@
 [submodule "libdw1000"]
 	path = vendor/libdw1000
 	url = https://github.com/bitcraze/libdw1000.git
+[submodule "CMSIS-DSP"]
+	path = CMSIS-DSP
+	url = https://github.com/ARM-software/CMSIS-DSP
