@@ -12,6 +12,8 @@ INC += -I$(SRC_DIR)/Drivers/CMSIS/Include
 INC += -I$(SRC_DIR)/Drivers/CMSIS/Device/ST/STM32F7xx
 INC += -I$(SRC_DIR)/Drivers/CMSIS/Device/ST/STM32F7xx/Include
 INC += -I$(SRC_DIR)/Third_Party/SEGGER
+INC += -I$(SRC_DIR)/CMSIS-DSP/Include
+INC += -I$(SRC_DIR)/CMSIS-DSP/PrivateInclude
 
 SRC_ASM = startup/startup_stm32f767xx.s
 
@@ -83,6 +85,10 @@ SRC_C += Third_Party/SEGGER/SEGGER_RTT_Syscalls_KEIL.c
 SRC_C += Third_Party/SEGGER/SEGGER_RTT_Syscalls_GCC.c
 SRC_C += Third_Party/SEGGER/SEGGER_SYSVIEW_FreeRTOS.c
 
+SRC_C += CMSIS-DSP/Source/BasicMathFunctions/BasicMathFunctions.c
+SRC_C += CMSIS-DSP/Source/BasicMathFunctions/BasicMathFunctionsF16.c
+SRC_C += CMSIS-DSP/Source/MatrixFunctions/MatrixFunctions.c
+SRC_C += CMSIS-DSP/Source/MatrixFunctions/MatrixFunctionsF16.c
 
 SRC_LD = STM32F767ZI_FLASH.ld
 
