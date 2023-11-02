@@ -62,9 +62,14 @@ static void kalmanTask(void* parameters) {
 
 static void updateQueuedMeasurements(const uint32_t nowMs) {
     tdoaMeasurement_t m;
+    //char buffer[32];
     while (estimatorDequeue(&m)) {
         //
-        SEGGER_SYSVIEW_PrintfHost("%f", m.distanceDiff);
+        //float dist = m.distanceDiff;
+        //snprintf(buffer, sizeof buffer, "%f\n", dist);
+        SEGGER_SYSVIEW_PrintfHost("A: %d, B: %d", m.anchorIdA, m.anchorIdB);
+        SEGGER_SYSVIEW_PrintfHost("%X", m.distanceDiff);
+        //SEGGER_SYSVIEW_PrintfTarget("%f", m.distanceDiff);
     }
 
 }
