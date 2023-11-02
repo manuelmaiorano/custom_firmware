@@ -47,7 +47,7 @@ void spiEndTransaction();
 #define DMA_FLAG_HTIF7                    ((uint32_t)0x24000000)
 #define DMA_FLAG_TCIF7                    ((uint32_t)0x28000000)
 // Based on 108MHz peripheral clock
-#define SPI_BAUDRATE_21MHZ  SPI_BAUDRATEPRESCALER_4 // 27MHz
+#define SPI_BAUDRATE_21MHZ  SPI_BAUDRATEPRESCALER_8 // 27MHz
 #define SPI_BAUDRATE_12MHZ  SPI_BAUDRATEPRESCALER_8     // 13.5MHz
 #define SPI_BAUDRATE_6MHZ   SPI_BAUDRATEPRESCALER_16    // 6.75MHz
 #define SPI_BAUDRATE_3MHZ   SPI_BAUDRATEPRESCALER_32    // 3.375MHz
