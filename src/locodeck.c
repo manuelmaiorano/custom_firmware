@@ -170,6 +170,8 @@ static void uwbTask(void* parameters) {
 
   //algoOptions.currentRangingMode = lpsMode_auto;
 
+  algorithm->init(dwm);
+  timeout = algorithm->onEvent(dwm, eventTimeout);
   //systemWaitStart();
 
   while(1) {
