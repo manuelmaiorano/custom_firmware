@@ -10,6 +10,8 @@
 #include "estimator.h"
 
 TaskHandle_t ledtask_handle;
+TaskHandle_t controllertask_handle;
+
 
 void led_task(void* param);
 
@@ -24,7 +26,10 @@ int main(void) {
 
     kalman_init();
 
-	assert_param(xTaskCreate(led_task, "ledtask", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &ledtask_handle) == pdPASS);
+	assert_param(xTaskCreate(led_task, "ledtask", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &ledtask_handle) == pdPASS);
+
+	assert_param(xTaskCreate(mock_controller_task, "controller", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
+
 
     //start the scheduler - shouldn't return unless there's a problem
 	vTaskStartScheduler();
@@ -34,6 +39,19 @@ int main(void) {
 	{
 	}
 
+}
+
+void mock_controller_task(void* param) {
+
+	uint32_t tick_period = 10;
+	state_t state;
+
+	while (1)
+	{
+		vTaskDelay(tick_period);
+		estimatorKalman(&state, 0);
+	}
+	
 }
 
 void led_task(void* param) {

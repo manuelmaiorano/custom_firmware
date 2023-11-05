@@ -82,10 +82,11 @@ void estimatorKalmanInit(void)
 
 void kalman_init() {
 
-    measurementsQueue = xQueueCreateStatic(MEASUREMENTS_QUEUE_SIZE, sizeof(tdoaMeasurement_t), queue_array, &queue_structure);
+    // measurementsQueue = xQueueCreateStatic(MEASUREMENTS_QUEUE_SIZE, sizeof(tdoaMeasurement_t), queue_array, &queue_structure);
 
-    assert_param(xTaskCreate(kalmanTask, KALMAN_TASK_NAME, KALMAN_TASK_STACKSIZE, NULL,
-                    KALMAN_TASK_PRI, &task_handle) == pdPASS);
+    // assert_param(xTaskCreate(kalmanTask, KALMAN_TASK_NAME, KALMAN_TASK_STACKSIZE, NULL,
+    //                 KALMAN_TASK_PRI, &task_handle) == pdPASS);
+    estimatorKalmanTaskInit();
 
 }
 void estimatorEnqueueTDOA(const tdoaMeasurement_t *measurement) {
@@ -109,6 +110,7 @@ static void kalmanTask(void* parameters) {
     uint32_t nowMs = T2M(xTaskGetTickCount());
     uint32_t nextPredictionMs = nowMs;
 
+    estimatorKalmanInit();
     while (true) {
         xSemaphoreTake(runTaskSemaphore, portMAX_DELAY);
 
