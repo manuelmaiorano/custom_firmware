@@ -14,6 +14,7 @@ TaskHandle_t controllertask_handle;
 
 
 void led_task(void* param);
+void mock_controller_task(void* param);
 
 int main(void) {
 
