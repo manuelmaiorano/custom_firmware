@@ -14,6 +14,10 @@ INC += -I$(SRC_DIR)/Drivers/CMSIS/Device/ST/STM32F7xx/Include
 INC += -I$(SRC_DIR)/Third_Party/SEGGER
 INC += -I$(SRC_DIR)/CMSIS-DSP/Include
 INC += -I$(SRC_DIR)/CMSIS-DSP/PrivateInclude
+INC += -I$(SRC_DIR)/Drivers/MPU6050/interface
+INC += -I$(SRC_DIR)/Drivers/MPU6050/example
+INC += -I$(SRC_DIR)/Drivers/MPU6050/src
+
 
 SRC_ASM = startup/startup_stm32f767xx.s
 
@@ -37,6 +41,9 @@ SRC_C += src/tdoaEngineInstance.c
 SRC_C += src/system_stm32f7xx.c
 SRC_C += src/gpio_utils.c
 SRC_C += src/outlierFilterTdoa.c
+SRC_C += src/sensor_task.c
+SRC_C += src/i2c_driver.c
+
 # FreeRTOS
 SRC_C += Third_Party/FreeRTOS/Source/event_groups.c
 SRC_C += Third_Party/FreeRTOS/Source/list.c
@@ -64,9 +71,9 @@ SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_spi_ex.c
 SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rcc_ex.c
 SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_pwr.c
 SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal.c
-#SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_i2c_ex.c
+SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_i2c_ex.c
 #SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_eth.c
-#SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_i2c.c
+SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_i2c.c
 SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_gpio.c
 SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_flash_ex.c
 SRC_C += Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma.c
@@ -97,6 +104,10 @@ SRC_C += CMSIS-DSP/Source/FastMathFunctions/FastMathFunctions.c
 SRC_C += CMSIS-DSP/Source/FastMathFunctions/FastMathFunctionsF16.c
 SRC_C += CMSIS-DSP/Source/CommonTables/CommonTables.c
 SRC_C += CMSIS-DSP/Source/CommonTables/CommonTablesF16.c
+
+SRC_C += Drivers/MPU6050/example/driver_mpu6050_basic.c
+SRC_C += Drivers/MPU6050/interface/driver_mpu6050_interface_template.c
+SRC_C += Drivers/MPU6050/src/driver_mpu6050.c
 
 SRC_LD = STM32F767ZI_FLASH.ld
 

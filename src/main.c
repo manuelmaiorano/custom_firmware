@@ -3,6 +3,7 @@
 #include <stm32f7xx_hal.h>
 #include <SEGGER_SYSVIEW.h>
 #include "gpio_utils.h"
+#include "sensor_task.h"
 
 
 
@@ -25,11 +26,12 @@ int main(void) {
     NVIC_SetPriorityGrouping(0);
 
 
-    kalman_init();
+    //kalman_init();
+	sensor_task_init();
 
 	assert_param(xTaskCreate(led_task, "ledtask", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &ledtask_handle) == pdPASS);
 
-	assert_param(xTaskCreate(mock_controller_task, "controller", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
+	//assert_param(xTaskCreate(mock_controller_task, "controller", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
 
 
     //start the scheduler - shouldn't return unless there's a problem
@@ -124,6 +126,8 @@ void SystemClock_Config(void)
 	{
 		Error_Handler();
 	}
+	//PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C2;
+	//PeriphClkInitStruct.I2c2ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
 	// PeriphClkInitStruct.PeriphClockSelection =	RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_CLK48|
 	// 											RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_UART4;
 	// PeriphClkInitStruct.Usart2ClockSelection = RCC_USART2CLKSOURCE_SYSCLK;
