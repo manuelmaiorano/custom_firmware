@@ -20,14 +20,14 @@ void sensor_task(void* param);
 
 void sensor_task_init() {
 
-    addr = MPU6050_ADDRESS_AD0_LOW;
-    res = mpu6050_basic_init(addr);
-    assert_param(res == 1);
-
-    assert_param(xTaskCreate(sensor_task, "sens", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &sensortask_handle) == pdPASS);
+    assert_param(xTaskCreate(sensor_task, "sens", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &sensortask_handle) == pdPASS);
 }
 
 void sensor_task(void* param) {
+
+    addr = MPU6050_ADDRESS_AD0_LOW;
+    res = mpu6050_basic_init(addr);
+    assert_param(res == 0);
 
     while(1) {
         vTaskDelay(100);

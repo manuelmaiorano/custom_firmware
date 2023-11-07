@@ -48,8 +48,8 @@
  */
 uint8_t mpu6050_interface_iic_init(void)
 {
-    i2c_init();
-    return 0;
+    
+    return i2c_init();
 }
 
 /**
@@ -61,8 +61,7 @@ uint8_t mpu6050_interface_iic_init(void)
  */
 uint8_t mpu6050_interface_iic_deinit(void)
 {
-    i2c_deinit();
-    return 0;
+    return i2c_deinit();
 }
 
 /**
@@ -78,8 +77,7 @@ uint8_t mpu6050_interface_iic_deinit(void)
  */
 uint8_t mpu6050_interface_iic_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len)
 {
-    i2c_read(addr, reg, buf, len);
-    return 0;
+    return i2c_read(addr, reg, buf, len);
 }
 
 /**
@@ -95,8 +93,7 @@ uint8_t mpu6050_interface_iic_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint
  */
 uint8_t mpu6050_interface_iic_write(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len)
 {
-    i2c_write(addr, reg, buf, len);
-    return 0;
+    return i2c_write(addr, reg, buf, len);
 }
 
 /**
