@@ -5,14 +5,17 @@
 #include "queue.h"
 #include "semphr.h"
 
-static SemaphoreHandle_t is_bus_free;
+static SemaphoreHandle_t tx_complete;
+static SemaphoreHandle_t rx_complete;
+
 
 static I2C_HandleTypeDef hi2c;
 
 
 uint8_t i2c_init(void) {
 
-    is_bus_free = xSemaphoreCreateBinary();
+    tx_complete = xSemaphoreCreateBinary();
+    rx_complete = xSemaphoreCreateBinary();
 
     GPIO_InitTypeDef GPIO_InitStructure;
     // Enable GPIOA clock
@@ -32,14 +35,9 @@ uint8_t i2c_init(void) {
     GPIO_InitStructure.Pin =  GPIO_PIN_0; // SDA
     HAL_GPIO_Init(GPIOF, &GPIO_InitStructure);
 
-    NVIC_SetPriority(I2C2_EV_IRQn, 7);
-    NVIC_EnableIRQ(I2C2_EV_IRQn);
 
-    NVIC_SetPriority(I2C2_ER_IRQn, 7);
-    NVIC_EnableIRQ(I2C2_ER_IRQn);
-
-    DMA_HandleTypeDef dma_handle_rx;
-    DMA_HandleTypeDef dma_handle_tx;
+    static DMA_HandleTypeDef dma_handle_rx;
+    static DMA_HandleTypeDef dma_handle_tx;
 
     __HAL_RCC_DMA1_CLK_ENABLE();
 
@@ -68,8 +66,11 @@ uint8_t i2c_init(void) {
     dma_handle_tx.Instance = DMA1_Stream7;
     assert_param(HAL_DMA_Init(&dma_handle_tx) == HAL_OK);
 
-    hi2c.hdmarx = &dma_handle_rx;
-    hi2c.hdmatx = &dma_handle_tx;
+    //hi2c.hdmarx = &dma_handle_rx;
+    //hi2c.hdmatx = &dma_handle_tx;
+    __HAL_LINKDMA(&hi2c, hdmatx, dma_handle_tx);
+    __HAL_LINKDMA(&hi2c, hdmarx, dma_handle_rx);
+
 
     NVIC_SetPriority(DMA1_Stream2_IRQn, 7);
     NVIC_EnableIRQ(DMA1_Stream2_IRQn);
@@ -85,9 +86,15 @@ uint8_t i2c_init(void) {
     hi2c.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
     hi2c.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
     hi2c.Init.NoStretchMode =  I2C_NOSTRETCH_DISABLE;
-    hi2c.Instance = I2C2;
+    hi2c.Instance = I2C2; 
 
     HAL_I2C_Init(&hi2c);
+
+    NVIC_SetPriority(I2C2_EV_IRQn, 7);
+    NVIC_EnableIRQ(I2C2_EV_IRQn);
+
+    NVIC_SetPriority(I2C2_ER_IRQn, 7);
+    NVIC_EnableIRQ(I2C2_ER_IRQn);
 
     assert_param(HAL_I2C_IsDeviceReady(&hi2c, 0xD0, 3, 10) == HAL_OK);
     return 0;
@@ -95,31 +102,48 @@ uint8_t i2c_init(void) {
 }
 
 uint8_t i2c_deinit() {
+    __I2C2_FORCE_RESET();
+    __I2C2_RELEASE_RESET();
+
+    HAL_GPIO_DeInit(GPIOF, GPIO_PIN_1);
+    HAL_GPIO_DeInit(GPIOF, GPIO_PIN_0);
+
+    HAL_DMA_DeInit(hi2c.hdmarx);
+    HAL_DMA_DeInit(hi2c.hdmatx);
+
+    NVIC_DisableIRQ(DMA1_Stream2_IRQn);
+    NVIC_DisableIRQ(DMA1_Stream7_IRQn);
+
+    NVIC_DisableIRQ(I2C2_EV_IRQn);
+    NVIC_DisableIRQ(I2C2_ER_IRQn);
+
     assert_param(HAL_I2C_DeInit(&hi2c) == HAL_OK);
     return 0;
 }
 
 uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
-    //HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len);
-    assert_param(HAL_I2C_Mem_Read(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) == HAL_OK);
-    // if (xSemaphoreTake(is_bus_free, 1000) == pdTRUE) {
-    //     return 0;
-    // }
+    assert_param(HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) == HAL_OK);
+    if (xSemaphoreTake(rx_complete, 1000) == pdTRUE) {
+        return 0;
+    }
+    return 1;
 
-    return 0;
+    // assert_param(HAL_I2C_Mem_Read(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) == HAL_OK);
+    // return 0;
 
 }
 
 uint8_t i2c_write(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
-    //HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len);
-    assert_param(HAL_I2C_Mem_Write(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) == HAL_OK);
-    // if (xSemaphoreTake(is_bus_free, 1000) == pdTRUE) {
-    //     return 0;
-    // }
+    assert_param(HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) == HAL_OK);
+    if (xSemaphoreTake(tx_complete, 1000) == pdTRUE) {
+        return 0;
+    }
+    return 1;
 
-    return 0;
+    // assert_param(HAL_I2C_Mem_Write(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) == HAL_OK);
+    // return 0;
 
 }
 
@@ -127,7 +151,7 @@ uint8_t i2c_write(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef* hi2c) {
 
     portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
-    xSemaphoreGiveFromISR(is_bus_free, &xHigherPriorityTaskWoken);
+    xSemaphoreGiveFromISR(tx_complete, &xHigherPriorityTaskWoken);
     if (xHigherPriorityTaskWoken){
         portYIELD();
     }
@@ -137,8 +161,29 @@ void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef* hi2c) {
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* hi2c) {
 
     portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
-    xSemaphoreGiveFromISR(is_bus_free, &xHigherPriorityTaskWoken);
+    xSemaphoreGiveFromISR(rx_complete, &xHigherPriorityTaskWoken);
     if (xHigherPriorityTaskWoken){
         portYIELD();
     }
+}
+
+
+void I2C2_EV_IRQHandler(void)
+{
+  HAL_I2C_EV_IRQHandler(&hi2c);
+}
+
+void I2C2_ER_IRQHandler(void)
+{
+  HAL_I2C_ER_IRQHandler(&hi2c);
+}
+
+void DMA1_Stream2_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(hi2c.hdmarx);
+}
+
+void DMA1_Stream7_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(hi2c.hdmatx);
 }
