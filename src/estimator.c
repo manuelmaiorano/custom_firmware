@@ -60,7 +60,7 @@ void estimatorKalmanTaskInit() {
 
   dataMutex = xSemaphoreCreateMutexStatic(&dataMutexBuffer);
 
-  measurementsQueue = xQueueCreateStatic(MEASUREMENTS_QUEUE_SIZE, sizeof(tdoaMeasurement_t), queue_array, &queue_structure);
+  measurementsQueue = xQueueCreateStatic(MEASUREMENTS_QUEUE_SIZE, sizeof(measurement_t), queue_array, &queue_structure);
 
   assert_param(xTaskCreate(kalmanTask, KALMAN_TASK_NAME, KALMAN_TASK_STACKSIZE, NULL,
                     KALMAN_TASK_PRI, &task_handle) == pdPASS);
@@ -89,14 +89,21 @@ void kalman_init() {
     estimatorKalmanTaskInit();
 
 }
-void estimatorEnqueueTDOA(const tdoaMeasurement_t *measurement) {
 
+void estimatorEnqueue(const measurement_t* measurement) {
+    xQueueSend(measurementsQueue, measurement, 0);
+}
 
-    portBASE_TYPE result = xQueueSend(measurementsQueue, measurement, 0);
+void estimatorEnqueueTDOA(const tdoaMeasurement_t *tdoa_measurement) {
+
+    measurement_t m;
+    m.type = MeasurementTypeTDOA;
+    m.data.tdoa = *tdoa_measurement;
+    estimatorEnqueue(&m); 
 
 }
 
-bool estimatorDequeue(tdoaMeasurement_t *measurement) {
+bool estimatorDequeue(measurement_t *measurement) {
   return pdTRUE == xQueueReceive(measurementsQueue, measurement, portMAX_DELAY);
 }
 
@@ -120,7 +127,7 @@ static void kalmanTask(void* parameters) {
           axis3fSubSamplerFinalize(&accSubSampler);
           axis3fSubSamplerFinalize(&gyroSubSampler);
 
-          kalmanCorePredict(&coreData, &accSubSampler.subSample, &gyroSubSampler.subSample, nowMs, true);
+          kalmanCorePredict(&coreData, &accSubSampler.subSample, &gyroSubSampler.subSample, nowMs, false);
           nextPredictionMs = nowMs + PREDICTION_UPDATE_INTERVAL_MS;
 
         }
@@ -153,12 +160,27 @@ void estimatorKalman(state_t *state, const stabilizerStep_t stabilizerStep) {
 
 
 static void updateQueuedMeasurements(const uint32_t nowMs) {
-    tdoaMeasurement_t m;
+    measurement_t m;
     //char buffer[32];
     while (estimatorDequeue(&m)) {
         //
-        SEGGER_SYSVIEW_PrintfHost("%f", m.distanceDiff);
-        kalmanCoreUpdateWithTdoa(&coreData, &m, nowMs, &outlierFilterTdoaState);
+        switch (m.type)
+        {
+          case MeasurementTypeTDOA:
+            kalmanCoreUpdateWithTdoa(&coreData, &m, nowMs, &outlierFilterTdoaState);
+            break;
+          case MeasurementTypeGyroscope:
+            axis3fSubSamplerAccumulate(&gyroSubSampler, &m.data.gyroscope.gyro);
+            gyroLatest = m.data.gyroscope.gyro;
+            break;
+          case MeasurementTypeAcceleration:
+            axis3fSubSamplerAccumulate(&accSubSampler, &m.data.acceleration.acc);
+            accLatest = m.data.acceleration.acc;
+            break;
+          default:
+            break;
+        }
+        
 
     }
 
