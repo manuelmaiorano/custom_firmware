@@ -1,6 +1,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "driver_mpu6050_basic.h"
+#include <SEGGER_SYSVIEW.h>
 #include <stm32f7xx_hal.h>
 
 uint8_t res;
@@ -36,6 +37,8 @@ void sensor_task(void* param) {
 
             assert_param(0);
         }
+        SEGGER_SYSVIEW_PrintfHost("acc: %x, %x, %x", g[0], g[1], g[2]);
+        SEGGER_SYSVIEW_PrintfHost("gyro: %x, %x, %x", dps[0], dps[1], dps[2]);
 
     }
 }
