@@ -21,7 +21,7 @@
 #define MEASUREMENTS_QUEUE_SIZE (21)
 static xQueueHandle measurementsQueue;
 static StaticQueue_t queue_structure;
-static tdoaMeasurement_t queue_array[MEASUREMENTS_QUEUE_SIZE];
+static measurement_t queue_array[MEASUREMENTS_QUEUE_SIZE];
 
 static TaskHandle_t task_handle = 0;
 
@@ -104,7 +104,7 @@ void estimatorEnqueueTDOA(const tdoaMeasurement_t *tdoa_measurement) {
 }
 
 bool estimatorDequeue(measurement_t *measurement) {
-  return pdTRUE == xQueueReceive(measurementsQueue, measurement, portMAX_DELAY);
+  return pdTRUE == xQueueReceive(measurementsQueue, measurement, 0);
 }
 
 static void kalmanTask(void* parameters) {

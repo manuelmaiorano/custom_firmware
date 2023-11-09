@@ -29,9 +29,9 @@ int main(void) {
     kalman_init();
 	sensor_task_init();
 
-	assert_param(xTaskCreate(led_task, "ledtask", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &ledtask_handle) == pdPASS);
+	assert_param(xTaskCreate(led_task, "ledtask", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &ledtask_handle) == pdPASS);
 
-	assert_param(xTaskCreate(mock_controller_task, "controller", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
+	assert_param(xTaskCreate(mock_controller_task, "controller", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
 
 
     //start the scheduler - shouldn't return unless there's a problem

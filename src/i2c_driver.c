@@ -88,7 +88,7 @@ uint8_t i2c_init(void) {
     hi2c.Init.NoStretchMode =  I2C_NOSTRETCH_DISABLE;
     hi2c.Instance = I2C2; 
 
-    HAL_I2C_Init(&hi2c);
+    assert_param(HAL_I2C_Init(&hi2c) == HAL_OK);
 
     NVIC_SetPriority(I2C2_EV_IRQn, 7);
     NVIC_EnableIRQ(I2C2_EV_IRQn);
@@ -123,7 +123,7 @@ uint8_t i2c_deinit() {
 
 uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
-    assert_param(HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) == HAL_OK);
+    HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len);
     if (xSemaphoreTake(rx_complete, 1000) == pdTRUE) {
         return 0;
     }
@@ -136,7 +136,7 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
 uint8_t i2c_write(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
-    assert_param(HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) == HAL_OK);
+    HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len);
     if (xSemaphoreTake(tx_complete, 1000) == pdTRUE) {
         return 0;
     }

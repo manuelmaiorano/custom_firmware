@@ -38,9 +38,9 @@ void sensor_task(void* param) {
     while(1) {
         vTaskDelay(100);
         if (mpu6050_basic_read(g, dps) != 0){
-            (void)mpu6050_basic_deinit();
-
-            assert_param(0);
+            continue;
+            //(void)mpu6050_basic_deinit();
+            //assert_param(0);
         }
         //SEGGER_SYSVIEW_PrintfHost("acc: %x, %x, %x", g[0], g[1], g[2]);
         //SEGGER_SYSVIEW_PrintfHost("gyro: %x, %x, %x", dps[0], dps[1], dps[2]);
