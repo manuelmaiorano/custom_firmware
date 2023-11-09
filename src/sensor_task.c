@@ -5,6 +5,7 @@
 #include <stm32f7xx_hal.h>
 #include "estimator.h"
 #include "stabilizer_types.h"
+#include "gpio_utils.h"
 
 uint8_t res;
 uint32_t i;
@@ -25,6 +26,10 @@ TaskHandle_t sensortask_handle;
 #define GYRO_NBR_OF_AXES            3
 #define GYRO_MIN_BIAS_TIMEOUT_MS    M2T(1*1000)
 
+#define SENSORS_ACC_SCALE_SAMPLES  200
+
+
+#define EXTI_LINE_SENS EXTI_LINE_8
 
 
 typedef struct
@@ -43,6 +48,16 @@ static void sensorsCalculateVarianceAndMean(BiasObj* bias, Axis3f* varOut, Axis3
 static void sensorsAddBiasValue(BiasObj* bias, float x, float y, float z);
 static bool sensorsFindBiasValue(BiasObj* bias);
 
+static bool processAccScale(float ax, float ay, float az);
+
+static bool isInit = false;
+
+static BiasObj gyro_bias;
+static float accScaleSum = 0;
+static float accScale = 1;
+
+
+
 void sensor_task(void* param);
 
 
@@ -51,19 +66,68 @@ void sensor_task_init() {
     assert_param(xTaskCreate(sensor_task, "sens", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &sensortask_handle) == pdPASS);
 }
 
+
+void  EXTI9_5_IRQHandler(void)
+{
+  NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
+
+  uint32_t regval;
+  uint32_t maskline;
+
+  /* Compute line mask */
+  maskline = (1uL << (EXTI_LINE_SENS & EXTI_PIN_MASK));
+
+
+  regval = (EXTI->PR & maskline);
+  if (regval != 0x00u)
+  {  //EXTI_ClearITPendingBit(EXTI_LINE_11);
+    EXTI->PR = maskline;
+    if (isInit) {
+        portBASE_TYPE  xHigherPriorityTaskWoken = pdFALSE;
+
+        // Unlock interrupt handling task
+        vTaskNotifyGiveFromISR(sensortask_handle, &xHigherPriorityTaskWoken);
+
+        if(xHigherPriorityTaskWoken) {
+        portYIELD();
+        }
+    }
+  }
+}
+
+void setup_interrupt() {
+    EXTI_ConfigTypeDef exti_config;
+    EXTI_HandleTypeDef exti_handle;
+    gpio_port_pin_t IRQ_PORT_PIN = {.port = GPIOC, .pin = GPIO_PIN_8};
+
+    exti_config.Line = EXTI_LINE_SENS;
+    exti_config.Mode = EXTI_MODE_INTERRUPT;
+    exti_config.Trigger = EXTI_TRIGGER_RISING;
+    exti_config.GPIOSel = EXTI_GPIOC;
+    exti_handle.Line = EXTI_LINE_SENS;
+    HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
+
+    // Init pins
+    __GPIOC_CLK_ENABLE();
+    pinMode(IRQ_PORT_PIN, INPUT);
+
+    NVIC_SetPriority(EXTI9_5_IRQn, 10);
+    NVIC_EnableIRQ(EXTI9_5_IRQn);
+}
+
 void sensor_task(void* param) {
 
     addr = MPU6050_ADDRESS_AD0_LOW;
     res = mpu6050_basic_init(addr);
     assert_param(res == 0);
+    isInit = true;
 
     measurement_t measurement;
     Axis3f vec;
-    BiasObj gyro_bias;
     sensorsBiasObjInit(&gyro_bias);
 
     while(1) {
-        vTaskDelay(100);
+        vTaskDelay(100);//ulTaskNotifyTake(pdTRUE, portMAX_DELAY)
         if (mpu6050_basic_read(g, dps) != 0){
             continue;
             //(void)mpu6050_basic_deinit();
@@ -71,18 +135,21 @@ void sensor_task(void* param) {
         }
         //SEGGER_SYSVIEW_PrintfHost("acc: %x, %x, %x", g[0], g[1], g[2]);
         //SEGGER_SYSVIEW_PrintfHost("gyro: %x, %x, %x", dps[0], dps[1], dps[2]);
-        
-        measurement.type = MeasurementTypeAcceleration;
-        vec.x = g[0]; 
-        vec.y = g[1];
-        vec.z = g[2];
-        measurement.data.acceleration.acc = vec;
-        estimatorEnqueue(&measurement); 
 
         sensorsAddBiasValue(&gyro_bias, dps[0], dps[1], dps[2]);
         if (!gyro_bias.isBiasValueFound) {
             sensorsFindBiasValue(&gyro_bias);
+        } else {
+            processAccScale(g[0], g[1], g[2]);
         }
+        
+        measurement.type = MeasurementTypeAcceleration;
+        vec.x = g[0] / accScale; 
+        vec.y = g[1] / accScale;
+        vec.z = g[2] / accScale;
+        measurement.data.acceleration.acc = vec;
+        estimatorEnqueue(&measurement); 
+
         measurement.type = MeasurementTypeGyroscope;
         vec.x = dps[0] - gyro_bias.bias.x; 
         vec.y = dps[1] - gyro_bias.bias.y;
@@ -91,6 +158,26 @@ void sensor_task(void* param) {
         estimatorEnqueue(&measurement); 
 
     }
+}
+
+static bool processAccScale(float ax, float ay, float az)
+{
+  static bool accBiasFound = false;
+  static float accScaleSumCount = 0;
+
+  if (!accBiasFound)
+  {
+    accScaleSum += sqrtf(powf(ax, 2) + powf(ay, 2) + powf(az, 2));
+    accScaleSumCount++;
+
+    if (accScaleSumCount == SENSORS_ACC_SCALE_SAMPLES)
+    {
+      accScale = accScaleSum / SENSORS_ACC_SCALE_SAMPLES;
+      accBiasFound = true;
+    }
+  }
+
+  return accBiasFound;
 }
 
 static void sensorsBiasObjInit(BiasObj* bias)
