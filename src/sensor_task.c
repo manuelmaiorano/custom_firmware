@@ -117,9 +117,12 @@ void setup_interrupt() {
 
 void sensor_task(void* param) {
 
+    setup_interrupt();
+
     addr = MPU6050_ADDRESS_AD0_LOW;
     res = mpu6050_basic_init(addr);
     assert_param(res == 0);
+
     isInit = true;
 
     measurement_t measurement;
@@ -127,7 +130,8 @@ void sensor_task(void* param) {
     sensorsBiasObjInit(&gyro_bias);
 
     while(1) {
-        vTaskDelay(100);//ulTaskNotifyTake(pdTRUE, portMAX_DELAY)
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        mpu6050_clear_interrupt();
         if (mpu6050_basic_read(g, dps) != 0){
             continue;
             //(void)mpu6050_basic_deinit();
@@ -153,7 +157,7 @@ void sensor_task(void* param) {
         measurement.type = MeasurementTypeGyroscope;
         vec.x = dps[0] - gyro_bias.bias.x; 
         vec.y = dps[1] - gyro_bias.bias.y;
-        vec.z = dps[2] - gyro_bias.bias.y;
+        vec.z = dps[2] - gyro_bias.bias.z;
         measurement.data.gyroscope.gyro = vec;
         estimatorEnqueue(&measurement); 
 

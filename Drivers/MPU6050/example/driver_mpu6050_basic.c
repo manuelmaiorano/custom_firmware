@@ -573,3 +573,8 @@ uint8_t mpu6050_basic_deinit(void)
     
     return 0;
 }
+
+void mpu6050_clear_interrupt() {
+    uint8_t status;
+    mpu6050_get_interrupt_status(&gs_handle, &status);
+}

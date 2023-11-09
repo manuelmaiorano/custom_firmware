@@ -66,7 +66,7 @@ extern "C"{
 #define MPU6050_BASIC_DEFAULT_INTERRUPT_FIFO_OVERFLOW        MPU6050_BOOL_FALSE                        /**< disable fifo overflow */
 #define MPU6050_BASIC_DEFAULT_INTERRUPT_DMP                  MPU6050_BOOL_FALSE                        /**< disable dmp */
 #define MPU6050_BASIC_DEFAULT_INTERRUPT_I2C_MAST             MPU6050_BOOL_FALSE                        /**< disable i2c master */
-#define MPU6050_BASIC_DEFAULT_INTERRUPT_DATA_READY           MPU6050_BOOL_FALSE                        /**< disable data ready */
+#define MPU6050_BASIC_DEFAULT_INTERRUPT_DATA_READY           MPU6050_BOOL_TRUE                        /**< disable data ready */
 #define MPU6050_BASIC_DEFAULT_INTERRUPT_LATCH                MPU6050_BOOL_TRUE                         /**< enable latch */
 #define MPU6050_BASIC_DEFAULT_INTERRUPT_READ_CLEAR           MPU6050_BOOL_TRUE                         /**< enable interrupt read clear */
 #define MPU6050_BASIC_DEFAULT_EXTERN_SYNC                    MPU6050_EXTERN_SYNC_INPUT_DISABLED        /**< extern sync input disable */
