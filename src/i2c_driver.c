@@ -123,7 +123,9 @@ uint8_t i2c_deinit() {
 
 uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
-    HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len);
+    if (HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) != HAL_OK) {
+        return 1;
+    }
     if (xSemaphoreTake(rx_complete, 1000) == pdTRUE) {
         return 0;
     }
@@ -136,7 +138,9 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
 uint8_t i2c_write(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
-    HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len);
+    if (HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) != HAL_OK) {
+        return 1;
+    }
     if (xSemaphoreTake(tx_complete, 1000) == pdTRUE) {
         return 0;
     }

@@ -166,7 +166,7 @@ static void rxFailedCallback(dwDevice_t * dev) {
 // }
 
 static void uwbTask(void* parameters) {
-  //lppShortQueue = xQueueCreate(10, sizeof(lpsLppShortPacket_t));
+  lppShortQueue = xQueueCreate(10, sizeof(lpsLppShortPacket_t));
 
   //algoOptions.currentRangingMode = lpsMode_auto;
 

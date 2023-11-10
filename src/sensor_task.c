@@ -133,6 +133,7 @@ void sensor_task(void* param) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         mpu6050_clear_interrupt();
         if (mpu6050_basic_read(g, dps) != 0){
+            assert_param(0);
             continue;
             //(void)mpu6050_basic_deinit();
             //assert_param(0);

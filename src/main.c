@@ -46,7 +46,7 @@ int main(void) {
 
 void mock_controller_task(void* param) {
 
-	uint32_t tick_period = 10;
+	uint32_t tick_period = 5;
 	state_t state;
 
 	while (1)
