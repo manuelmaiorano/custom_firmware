@@ -6,6 +6,7 @@
 #include "estimator.h"
 #include "stabilizer_types.h"
 #include "gpio_utils.h"
+#include "config.h"
 
 uint8_t res;
 uint32_t i;
@@ -63,7 +64,7 @@ void sensor_task(void* param);
 
 void sensor_task_init() {
 
-    assert_param(xTaskCreate(sensor_task, "sens", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &sensortask_handle) == pdPASS);
+    assert_param(xTaskCreate(sensor_task, "sens", 4*configMINIMAL_STACK_SIZE, NULL, SENSORS_TASK_PRI, &sensortask_handle) == pdPASS);
 }
 
 
@@ -131,9 +132,13 @@ void sensor_task(void* param) {
 
     while(1) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        mpu6050_clear_interrupt();
+        //mpu6050_clear_interrupt();
+        //vTaskDelay(20);
         if (mpu6050_basic_read(g, dps) != 0){
-            assert_param(0);
+            //assert_param(0);
+            (void)mpu6050_basic_deinit();
+            vTaskDelay(10);
+            mpu6050_basic_init(addr);
             continue;
             //(void)mpu6050_basic_deinit();
             //assert_param(0);

@@ -7,6 +7,8 @@
 
 static SemaphoreHandle_t tx_complete;
 static SemaphoreHandle_t rx_complete;
+static SemaphoreHandle_t i2c_mutex;
+
 
 
 static I2C_HandleTypeDef hi2c;
@@ -16,6 +18,7 @@ uint8_t i2c_init(void) {
 
     tx_complete = xSemaphoreCreateBinary();
     rx_complete = xSemaphoreCreateBinary();
+    i2c_mutex =  xSemaphoreCreateMutex();
 
     GPIO_InitTypeDef GPIO_InitStructure;
     // Enable GPIOA clock
@@ -78,7 +81,7 @@ uint8_t i2c_init(void) {
     NVIC_SetPriority(DMA1_Stream7_IRQn, 7);
     NVIC_EnableIRQ(DMA1_Stream7_IRQn);
 
-    hi2c.Init.Timing = 0xB0420F13;
+    hi2c.Init.Timing = 0x20404768;//0x6000030D;
     hi2c.Init.OwnAddress1 = 0x00;
     hi2c.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     hi2c.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -123,13 +126,19 @@ uint8_t i2c_deinit() {
 
 uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
+    xSemaphoreTake(i2c_mutex, portMAX_DELAY);
     if (HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) != HAL_OK) {
+        xSemaphoreGive(i2c_mutex);
         return 1;
     }
+    uint8_t res = 0;
     if (xSemaphoreTake(rx_complete, 1000) == pdTRUE) {
-        return 0;
+        res = 0;
+    } else {
+        res = 1;
     }
-    return 1;
+    xSemaphoreGive(i2c_mutex);
+    return res;
 
     // assert_param(HAL_I2C_Mem_Read(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) == HAL_OK);
     // return 0;
@@ -138,13 +147,19 @@ uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
 uint8_t i2c_write(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
+    xSemaphoreTake(i2c_mutex, portMAX_DELAY);
     if (HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) != HAL_OK) {
+        xSemaphoreGive(i2c_mutex);
         return 1;
     }
+    uint8_t res = 0;
     if (xSemaphoreTake(tx_complete, 1000) == pdTRUE) {
-        return 0;
+        res = 0;
+    } else {
+        res = 1;
     }
-    return 1;
+    xSemaphoreGive(i2c_mutex);
+    return res;
 
     // assert_param(HAL_I2C_Mem_Write(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) == HAL_OK);
     // return 0;
@@ -169,6 +184,18 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* hi2c) {
     if (xHigherPriorityTaskWoken){
         portYIELD();
     }
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef* hi2c) {
+
+    //i2c_deinit();
+    //i2c_init();
+}
+
+void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef* hi2c) {
+
+    //i2c_deinit();
+    //i2c_init();
 }
 
 
