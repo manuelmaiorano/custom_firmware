@@ -30,7 +30,7 @@ TaskHandle_t sensortask_handle;
 #define SENSORS_ACC_SCALE_SAMPLES  200
 
 
-#define EXTI_LINE_SENS EXTI_LINE_8
+#define EXTI_LINE_SENS EXTI_LINE_5
 
 
 typedef struct
@@ -99,17 +99,17 @@ void  EXTI9_5_IRQHandler(void)
 void setup_interrupt() {
     EXTI_ConfigTypeDef exti_config;
     EXTI_HandleTypeDef exti_handle;
-    gpio_port_pin_t IRQ_PORT_PIN = {.port = GPIOC, .pin = GPIO_PIN_8};
+    gpio_port_pin_t IRQ_PORT_PIN = {.port = GPIOF, .pin = GPIO_PIN_5};
 
     exti_config.Line = EXTI_LINE_SENS;
     exti_config.Mode = EXTI_MODE_INTERRUPT;
     exti_config.Trigger = EXTI_TRIGGER_RISING;
-    exti_config.GPIOSel = EXTI_GPIOC;
+    exti_config.GPIOSel = EXTI_GPIOF;
     exti_handle.Line = EXTI_LINE_SENS;
     HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
 
     // Init pins
-    __GPIOC_CLK_ENABLE();
+    __GPIOF_CLK_ENABLE();
     pinMode(IRQ_PORT_PIN, INPUT);
 
     NVIC_SetPriority(EXTI9_5_IRQn, 10);
