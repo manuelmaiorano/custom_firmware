@@ -10,11 +10,11 @@
 #include "locodeck.h"
 #include "estimator.h"
 
-TaskHandle_t ledtask_handle;
+TaskHandle_t starttask_handle;
 TaskHandle_t controllertask_handle;
 
 
-void led_task(void* param);
+void start_task(void* param);
 void mock_controller_task(void* param);
 
 int main(void) {
@@ -26,12 +26,12 @@ int main(void) {
     NVIC_SetPriorityGrouping(0);
 
 
-    kalman_init();
-	sensor_task_init();
+    // kalman_init();
+	// sensor_task_init();
 
-	assert_param(xTaskCreate(led_task, "ledtask", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &ledtask_handle) == pdPASS);
+	assert_param(xTaskCreate(start_task, "strt", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &starttask_handle) == pdPASS);
 
-	assert_param(xTaskCreate(mock_controller_task, "controller", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
+	//assert_param(xTaskCreate(mock_controller_task, "contr", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
 
 
     //start the scheduler - shouldn't return unless there's a problem
@@ -43,6 +43,11 @@ int main(void) {
 	}
 
 }
+
+void init_controller() {
+	assert_param(xTaskCreate(mock_controller_task, "contr", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
+}
+
 
 void mock_controller_task(void* param) {
 
@@ -57,13 +62,16 @@ void mock_controller_task(void* param) {
 	
 }
 
-void led_task(void* param) {
+void start_task(void* param) {
 
 	__GPIOB_CLK_ENABLE();
 	const gpio_port_pin_t ledgpio = {.port=GPIOB, .pin=GPIO_PIN_0};
-	EXTI_HandleTypeDef handle;
-	handle.Line = EXTI_LINE_11;
 	pinMode(ledgpio, OUTPUT);
+
+	kalman_init();
+	init_loco_deck();
+	sensor_task_init();
+	init_controller();
 
 	while (1)
 	{
@@ -72,7 +80,6 @@ void led_task(void* param) {
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		digitalWrite(ledgpio, 0);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		//HAL_EXTI_GenerateSWI(&handle);
 	}
 	
 }

@@ -20,6 +20,12 @@ uint8_t i2c_init(void) {
     rx_complete = xSemaphoreCreateBinary();
     i2c_mutex =  xSemaphoreCreateMutex();
 
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C2;
+    PeriphClkInitStruct.I2c2ClockSelection = RCC_I2C2CLKSOURCE_PCLK1;
+    assert_param(HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) == HAL_OK);
+
     GPIO_InitTypeDef GPIO_InitStructure;
     // Enable GPIOA clock
     __HAL_RCC_GPIOF_CLK_ENABLE();
@@ -81,7 +87,7 @@ uint8_t i2c_init(void) {
     NVIC_SetPriority(DMA1_Stream7_IRQn, 7);
     NVIC_EnableIRQ(DMA1_Stream7_IRQn);
 
-    hi2c.Init.Timing = 0x20404768;//0x6000030D;
+    hi2c.Init.Timing = 0x6000030D;//0x20404768
     hi2c.Init.OwnAddress1 = 0x00;
     hi2c.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     hi2c.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;

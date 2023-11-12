@@ -109,7 +109,7 @@ bool estimatorDequeue(measurement_t *measurement) {
 
 static void kalmanTask(void* parameters) {
 
-    init_loco_deck();
+    //init_loco_deck();
 
     //gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_11 };
     //digitalWrite(IRQ_PORT_PIN, 1);
