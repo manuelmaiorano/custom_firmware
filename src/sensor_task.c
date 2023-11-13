@@ -93,7 +93,7 @@ void exti5_callback(void) {
 
 void setup_interrupt() {
     static EXTI_ConfigTypeDef exti_config;
-    gpio_port_pin_t IRQ_PORT_PIN = {.port = GPIOF, .pin = GPIO_PIN_5};
+    static gpio_port_pin_t IRQ_PORT_PIN = {.port = GPIOF, .pin = GPIO_PIN_5};
 
     exti_config.Line = EXTI_LINE_SENS;
     exti_config.Mode = EXTI_MODE_INTERRUPT;
@@ -102,10 +102,6 @@ void setup_interrupt() {
     exti_handle.Line = EXTI_LINE_SENS;
     HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
     HAL_EXTI_RegisterCallback(&exti_handle, HAL_EXTI_COMMON_CB_ID, exti5_callback);
-
-    // Init pins
-    __GPIOF_CLK_ENABLE();
-    pinMode(IRQ_PORT_PIN, INPUT);
 
     NVIC_SetPriority(EXTI9_5_IRQn, 10);
     NVIC_EnableIRQ(EXTI9_5_IRQn);

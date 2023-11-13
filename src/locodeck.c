@@ -21,9 +21,9 @@
 static void dwm1000Init();
 
 
-const gpio_port_pin_t CS_PORT_PIN = {.port=GPIOB, .pin=GPIO_PIN_1};
-const gpio_port_pin_t RESET_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_9};
-const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_12 };
+static const gpio_port_pin_t CS_PORT_PIN = {.port=GPIOB, .pin=GPIO_PIN_1};
+static const gpio_port_pin_t RESET_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_9};
+static const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_12 };
 
 #define EXTI_LINE EXTI_LINE_12
 #define DEFAULT_RX_TIMEOUT 10000
@@ -194,8 +194,6 @@ static void dwm1000Init()
   spiBegin();
 
   // Set up interrupt
-  //LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTC, LL_SYSCFG_EXTI_LINE11);
-  //RCC->AHB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
   exti_config.Line = EXTI_LINE;
   exti_config.Mode = EXTI_MODE_INTERRUPT;
@@ -208,9 +206,18 @@ static void dwm1000Init()
   // Init pins
   __GPIOC_CLK_ENABLE();
   __GPIOB_CLK_ENABLE();
-  pinMode(CS_PORT_PIN, OUTPUT);
-  pinMode(RESET_PORT_PIN, OUTPUT);
-  pinMode(IRQ_PORT_PIN, INPUT);
+
+  GPIO_InitTypeDef gpio_init_struct;
+  gpio_init_struct.Pin = CS_PORT_PIN.pin;
+  gpio_init_struct.Mode = GPIO_MODE_OUTPUT_PP;
+  gpio_init_struct.Pull = GPIO_NOPULL;
+  gpio_init_struct.Speed = GPIO_SPEED_MEDIUM;
+  HAL_GPIO_Init(CS_PORT_PIN.port, &gpio_init_struct);
+
+  gpio_init_struct.Pin = RESET_PORT_PIN.pin;
+  gpio_init_struct.Mode = GPIO_MODE_OUTPUT_PP;
+  gpio_init_struct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(RESET_PORT_PIN.port, &gpio_init_struct);
 
   NVIC_SetPriority(EXTI15_10_IRQn, 10);
   NVIC_EnableIRQ(EXTI15_10_IRQn);

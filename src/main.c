@@ -66,10 +66,15 @@ void start_task(void* param) {
 
 	__GPIOB_CLK_ENABLE();
 	const gpio_port_pin_t ledgpio = {.port=GPIOB, .pin=GPIO_PIN_0};
-	pinMode(ledgpio, OUTPUT);
+	GPIO_InitTypeDef gpio_init_struct;
+	gpio_init_struct.Pin = ledgpio.pin;
+	gpio_init_struct.Mode = GPIO_MODE_OUTPUT_PP;
+	gpio_init_struct.Pull = GPIO_NOPULL;
+	gpio_init_struct.Speed = GPIO_SPEED_MEDIUM;
+	HAL_GPIO_Init(ledgpio.port, &gpio_init_struct);
 
 	kalman_init();
-	init_loco_deck();
+	//init_loco_deck();
 	sensor_task_init();
 	init_controller();
 
