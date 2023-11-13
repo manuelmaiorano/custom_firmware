@@ -135,7 +135,7 @@ uint8_t i2c_deinit() {
     return 0;
 }
 
-uint8_t pooling = 1;
+uint8_t pooling = 0;
 
 uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 

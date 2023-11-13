@@ -9,15 +9,19 @@
 #include "config.h"
 
 uint8_t res;
-uint32_t i;
-uint32_t times;
+
 float g[3];
 float dps[3];
-float degrees;
+
+float g_post[3];
+float dps_post[3];
+
 mpu6050_address_t addr;
 
-
 TaskHandle_t sensortask_handle;
+
+static EXTI_HandleTypeDef exti_handle;
+
 
 #define SENSORS_NBR_OF_BIAS_SAMPLES     1024
 #define GYRO_VARIANCE_BASE          50
@@ -70,35 +74,25 @@ void sensor_task_init() {
 
 void  EXTI9_5_IRQHandler(void)
 {
-  NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
+  HAL_EXTI_IRQHandler(&exti_handle);
 
-  uint32_t regval;
-  uint32_t maskline;
+}
 
-  /* Compute line mask */
-  maskline = (1uL << (EXTI_LINE_SENS & EXTI_PIN_MASK));
+void exti5_callback(void) {
+  if(isInit) {
+    portBASE_TYPE  xHigherPriorityTaskWoken = pdFALSE;
 
+    // Unlock interrupt handling task
+    vTaskNotifyGiveFromISR(sensortask_handle, &xHigherPriorityTaskWoken);
 
-  regval = (EXTI->PR & maskline);
-  if (regval != 0x00u)
-  {  //EXTI_ClearITPendingBit(EXTI_LINE_11);
-    EXTI->PR = maskline;
-    if (isInit) {
-        portBASE_TYPE  xHigherPriorityTaskWoken = pdFALSE;
-
-        // Unlock interrupt handling task
-        vTaskNotifyGiveFromISR(sensortask_handle, &xHigherPriorityTaskWoken);
-
-        if(xHigherPriorityTaskWoken) {
-        portYIELD();
-        }
+    if(xHigherPriorityTaskWoken) {
+      portYIELD();
     }
   }
 }
 
 void setup_interrupt() {
-    EXTI_ConfigTypeDef exti_config;
-    EXTI_HandleTypeDef exti_handle;
+    static EXTI_ConfigTypeDef exti_config;
     gpio_port_pin_t IRQ_PORT_PIN = {.port = GPIOF, .pin = GPIO_PIN_5};
 
     exti_config.Line = EXTI_LINE_SENS;
@@ -107,6 +101,7 @@ void setup_interrupt() {
     exti_config.GPIOSel = EXTI_GPIOF;
     exti_handle.Line = EXTI_LINE_SENS;
     HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
+    HAL_EXTI_RegisterCallback(&exti_handle, HAL_EXTI_COMMON_CB_ID, exti5_callback);
 
     // Init pins
     __GPIOF_CLK_ENABLE();
@@ -154,6 +149,10 @@ void sensor_task(void* param) {
         }
         
         measurement.type = MeasurementTypeAcceleration;
+        g_post[0] = g[0] / accScale; 
+        g_post[1] = g[1] / accScale;
+        g_post[2] = g[2] / accScale;
+
         vec.x = g[0] / accScale; 
         vec.y = g[1] / accScale;
         vec.z = g[2] / accScale;
@@ -161,6 +160,10 @@ void sensor_task(void* param) {
         estimatorEnqueue(&measurement); 
 
         measurement.type = MeasurementTypeGyroscope;
+        dps_post[0] = dps[0] - gyro_bias.bias.x; 
+        dps_post[1] = dps[1] - gyro_bias.bias.y;
+        dps_post[2] = dps[2] - gyro_bias.bias.z;
+
         vec.x = dps[0] - gyro_bias.bias.x; 
         vec.y = dps[1] - gyro_bias.bias.y;
         vec.z = dps[2] - gyro_bias.bias.z;

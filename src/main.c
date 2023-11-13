@@ -48,11 +48,11 @@ void init_controller() {
 	assert_param(xTaskCreate(mock_controller_task, "contr", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
 }
 
+state_t state;
 
 void mock_controller_task(void* param) {
 
 	uint32_t tick_period = 1;
-	state_t state;
 
 	while (1)
 	{

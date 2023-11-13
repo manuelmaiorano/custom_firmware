@@ -29,38 +29,6 @@ const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_12 };
 #define EXTI_LINE EXTI_LINE_12
 #define DEFAULT_RX_TIMEOUT 10000
 
-// The anchor position can be set using parameters
-// As an option you can set a static position in this file and set
-// combinedAnchorPositionOk to enable sending the anchor rangings to the Kalman filter
-
-// static lpsAlgoOptions_t algoOptions = {
-//   // .userRequestedMode is the wanted algorithm, available as a parameter
-// #if defined(CONFIG_DECK_LOCO_ALGORITHM_TDOA2)
-//   .userRequestedMode = lpsMode_TDoA2,
-// #elif defined(CONFIG_DECK_LOCO_ALGORITHM_TDOA3)
-//   .userRequestedMode = lpsMode_TDoA3,
-// #elif defined(CONFIG_DECK_LOCO_ALGORITHM_TWR)
-//   .userRequestedMode = lpsMode_TWR,
-// #else
-//   .userRequestedMode = lpsMode_auto,
-// #endif
-//   // .currentRangingMode is the currently running algorithm, available as a log
-//   // lpsMode_auto is an impossible mode which forces initialization of the requested mode
-//   // at startup
-//   .currentRangingMode = lpsMode_auto,
-//   .modeAutoSearchActive = true,
-//   .modeAutoSearchDoInitialize = true,
-// };
-
-// struct {
-//   uwbAlgorithm_t *algorithm;
-//   char *name;
-// } algorithmsList[LPS_NUMBER_OF_ALGORITHMS + 1] = {
-//   [lpsMode_TWR] = {.algorithm = &uwbTwrTagAlgorithm, .name="TWR"},
-//   [lpsMode_TDoA2] = {.algorithm = &uwbTdoa2TagAlgorithm, .name="TDoA2"},
-//   [lpsMode_TDoA3] = {.algorithm = &uwbTdoa3TagAlgorithm, .name="TDoA3"},
-// };
-
 static uwbAlgorithm_t *algorithm = &uwbTdoa2TagAlgorithm;
 
 static bool isInit = false;
@@ -73,8 +41,7 @@ static QueueHandle_t lppShortQueue;
 
 static uint32_t timeout;
 
-
-//static void buildAnchorMemList(const uint32_t memAddr, const uint8_t readLen, uint8_t* dest, const uint32_t pageBase_address, const uint8_t anchorCount, const uint8_t unsortedAnchorList[]);
+static EXTI_HandleTypeDef exti_handle;
 
 static void txCallback(dwDevice_t *dev)
 {
@@ -93,77 +60,6 @@ static void rxTimeoutCallback(dwDevice_t * dev) {
 static void rxFailedCallback(dwDevice_t * dev) {
   timeout = algorithm->onEvent(dev, eventReceiveFailed);
 }
-
-// static bool switchToMode(const lpsMode_t newMode) {
-//   bool result = false;
-
-//   if (lpsMode_auto != newMode && newMode <= LPS_NUMBER_OF_ALGORITHMS) {
-//     algoOptions.currentRangingMode = newMode;
-//     algorithm = algorithmsList[algoOptions.currentRangingMode].algorithm;
-
-//     algorithm->init(dwm);
-//     timeout = algorithm->onEvent(dwm, eventTimeout);
-
-//     result = true;
-//   }
-
-//   return result;
-// }
-
-// static void autoModeSearchTryMode(const lpsMode_t newMode, const uint32_t now) {
-//   // Set up next time to check
-//   algoOptions.nextSwitchTick = now + LPS_AUTO_MODE_SWITCH_PERIOD;
-//   switchToMode(newMode);
-// }
-
-// static lpsMode_t autoModeSearchGetNextMode() {
-//   lpsMode_t newMode = algoOptions.currentRangingMode + 1;
-//   if (newMode > LPS_NUMBER_OF_ALGORITHMS) {
-//     newMode = lpsMode_TWR;
-//   }
-
-//   return newMode;
-// }
-
-// static void processAutoModeSwitching() {
-//   uint32_t now = xTaskGetTickCount();
-
-//   if (algoOptions.modeAutoSearchActive) {
-//     if (algoOptions.modeAutoSearchDoInitialize) {
-//       autoModeSearchTryMode(lpsMode_TDoA2, now);
-//       algoOptions.modeAutoSearchDoInitialize = false;
-//     } else {
-//       if (now > algoOptions.nextSwitchTick) {
-//         if (algorithm->isRangingOk()) {
-//           // We have found an algorithm, stop searching and lock to it.
-//           algoOptions.modeAutoSearchActive = false;
-//           DEBUG_PRINT("Automatic mode: detected %s\n", algorithmsList[algoOptions.currentRangingMode].name);
-//         } else {
-//           lpsMode_t newMode = autoModeSearchGetNextMode();
-//           autoModeSearchTryMode(newMode, now);
-//         }
-//       }
-//     }
-//   }
-// }
-
-// static void resetAutoSearchMode() {
-//   algoOptions.modeAutoSearchActive = true;
-//   algoOptions.modeAutoSearchDoInitialize = true;
-// }
-
-// static void handleModeSwitch() {
-//   if (algoOptions.userRequestedMode == lpsMode_auto) {
-//     processAutoModeSwitching();
-//   } else {
-//     resetAutoSearchMode();
-//     if (algoOptions.userRequestedMode != algoOptions.currentRangingMode) {
-//       if (switchToMode(algoOptions.userRequestedMode)) {
-//         DEBUG_PRINT("Switching to mode %s\n", algorithmsList[algoOptions.currentRangingMode].name);
-//       }
-//     }
-//   }
-// }
 
 static void uwbTask(void* parameters) {
   lppShortQueue = xQueueCreate(10, sizeof(lpsLppShortPacket_t));
@@ -247,9 +143,10 @@ static void spiRead(dwDevice_t* dev, const void *header, size_t headerLength,
   //STATS_CNT_RATE_EVENT(&spiReadCount);
 }
 
-void EXTI11_Callback(void)
-  {
-    portBASE_TYPE  xHigherPriorityTaskWoken = pdFALSE;
+void exti12_callback(void)
+{
+  if(isInit) {
+     portBASE_TYPE  xHigherPriorityTaskWoken = pdFALSE;
 
     // Unlock interrupt handling task
     vTaskNotifyGiveFromISR(uwbTaskHandle, &xHigherPriorityTaskWoken);
@@ -259,25 +156,11 @@ void EXTI11_Callback(void)
     }
   }
 
+}
+
 void  EXTI15_10_IRQHandler(void)
 {
-  NVIC_ClearPendingIRQ(EXTI15_10_IRQn);
-
-  uint32_t regval;
-  uint32_t maskline;
-
-  /* Compute line mask */
-  maskline = (1uL << (EXTI_LINE & EXTI_PIN_MASK));
-
-
-  regval = (EXTI->PR & maskline);
-  if (regval != 0x00u)
-  {  //EXTI_ClearITPendingBit(EXTI_LINE_11);
-    EXTI->PR = maskline;
-    if (isInit) {
-        EXTI11_Callback();
-    }
-  }
+  HAL_EXTI_IRQHandler(&exti_handle);
 }
 
 static void spiSetSpeed(dwDevice_t* dev, dwSpiSpeed_t speed)
@@ -308,8 +191,7 @@ static dwOps_t dwOps = {
 
 static void dwm1000Init()
 {
-  EXTI_ConfigTypeDef exti_config;
-  EXTI_HandleTypeDef exti_handle;
+  static EXTI_ConfigTypeDef exti_config;
   spiBegin();
 
   // Set up interrupt
@@ -322,6 +204,7 @@ static void dwm1000Init()
   exti_config.GPIOSel = EXTI_GPIOC;
   exti_handle.Line = EXTI_LINE;
   HAL_EXTI_SetConfigLine(&exti_handle, &exti_config);
+  HAL_EXTI_RegisterCallback(&exti_handle, HAL_EXTI_COMMON_CB_ID, exti12_callback);
 
   // Init pins
   __GPIOC_CLK_ENABLE();
