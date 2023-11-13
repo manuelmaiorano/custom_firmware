@@ -136,7 +136,7 @@ void sensor_task(void* param) {
         //vTaskDelay(20);
         if (mpu6050_basic_read(g, dps) != 0){
             //assert_param(0);
-            (void)mpu6050_basic_deinit();
+            mpu6050_basic_deinit();
             vTaskDelay(10);
             mpu6050_basic_init(addr);
             continue;

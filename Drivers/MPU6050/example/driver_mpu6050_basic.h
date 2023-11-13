@@ -54,7 +54,7 @@ extern "C"{
  * @brief mpu6050 basic example default definition
  */
 #define MPU6050_BASIC_DEFAULT_CLOCK_SOURCE                   MPU6050_CLOCK_SOURCE_PLL_X_GYRO           /**< gyro pll x */
-#define MPU6050_BASIC_DEFAULT_RATE                           50                                        /**< 50Hz */
+#define MPU6050_BASIC_DEFAULT_RATE                           500                                        /**< 50Hz */
 #define MPU6050_BASIC_DEFAULT_LOW_PASS_FILTER                MPU6050_LOW_PASS_FILTER_3                 /**< low pass filter 3 */
 #define MPU6050_BASIC_DEFAULT_CYCLE_WAKE_UP                  MPU6050_BOOL_FALSE                        /**< disable cycle wake up */
 #define MPU6050_BASIC_DEFAULT_WAKE_UP_FREQUENCY              MPU6050_WAKE_UP_FREQUENCY_1P25_HZ         /**< 1.25Hz */

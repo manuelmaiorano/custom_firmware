@@ -13,12 +13,7 @@ static SemaphoreHandle_t i2c_mutex;
 
 static I2C_HandleTypeDef hi2c;
 
-
-uint8_t i2c_init(void) {
-
-    tx_complete = xSemaphoreCreateBinary();
-    rx_complete = xSemaphoreCreateBinary();
-    i2c_mutex =  xSemaphoreCreateMutex();
+void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c) {
 
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
@@ -77,8 +72,8 @@ uint8_t i2c_init(void) {
 
     //hi2c.hdmarx = &dma_handle_rx;
     //hi2c.hdmatx = &dma_handle_tx;
-    __HAL_LINKDMA(&hi2c, hdmatx, dma_handle_tx);
-    __HAL_LINKDMA(&hi2c, hdmarx, dma_handle_rx);
+    __HAL_LINKDMA(hi2c, hdmatx, dma_handle_tx);
+    __HAL_LINKDMA(hi2c, hdmarx, dma_handle_rx);
 
 
     NVIC_SetPriority(DMA1_Stream2_IRQn, 7);
@@ -86,6 +81,37 @@ uint8_t i2c_init(void) {
 
     NVIC_SetPriority(DMA1_Stream7_IRQn, 7);
     NVIC_EnableIRQ(DMA1_Stream7_IRQn);
+
+
+    NVIC_SetPriority(I2C2_EV_IRQn, 7);
+    NVIC_EnableIRQ(I2C2_EV_IRQn);
+
+    // NVIC_SetPriority(I2C2_ER_IRQn, 7);
+    // NVIC_EnableIRQ(I2C2_ER_IRQn);
+
+}
+
+void HAL_I2C_MspDeInit(I2C_HandleTypeDef *hi2c) {
+    __I2C2_CLK_DISABLE();
+
+    HAL_GPIO_DeInit(GPIOF, GPIO_PIN_1);
+    HAL_GPIO_DeInit(GPIOF, GPIO_PIN_0);
+
+    HAL_DMA_DeInit(hi2c->hdmarx);
+    HAL_DMA_DeInit(hi2c->hdmatx);
+
+
+    NVIC_DisableIRQ(I2C2_EV_IRQn);
+    NVIC_DisableIRQ(I2C2_ER_IRQn);
+
+}
+
+
+uint8_t i2c_init(void) {
+
+    tx_complete = xSemaphoreCreateBinary();
+    rx_complete = xSemaphoreCreateBinary();
+    i2c_mutex =  xSemaphoreCreateMutex();
 
     hi2c.Init.Timing = 0x6000030D;//0x20404768
     hi2c.Init.OwnAddress1 = 0x00;
@@ -99,77 +125,57 @@ uint8_t i2c_init(void) {
 
     assert_param(HAL_I2C_Init(&hi2c) == HAL_OK);
 
-    NVIC_SetPriority(I2C2_EV_IRQn, 7);
-    NVIC_EnableIRQ(I2C2_EV_IRQn);
-
-    NVIC_SetPriority(I2C2_ER_IRQn, 7);
-    NVIC_EnableIRQ(I2C2_ER_IRQn);
-
     assert_param(HAL_I2C_IsDeviceReady(&hi2c, 0xD0, 3, 10) == HAL_OK);
     return 0;
 
 }
 
 uint8_t i2c_deinit() {
-    __I2C2_FORCE_RESET();
-    __I2C2_RELEASE_RESET();
-
-    HAL_GPIO_DeInit(GPIOF, GPIO_PIN_1);
-    HAL_GPIO_DeInit(GPIOF, GPIO_PIN_0);
-
-    HAL_DMA_DeInit(hi2c.hdmarx);
-    HAL_DMA_DeInit(hi2c.hdmatx);
-
-    NVIC_DisableIRQ(DMA1_Stream2_IRQn);
-    NVIC_DisableIRQ(DMA1_Stream7_IRQn);
-
-    NVIC_DisableIRQ(I2C2_EV_IRQn);
-    NVIC_DisableIRQ(I2C2_ER_IRQn);
-
     assert_param(HAL_I2C_DeInit(&hi2c) == HAL_OK);
     return 0;
 }
 
+uint8_t pooling = 1;
+
 uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
-    xSemaphoreTake(i2c_mutex, portMAX_DELAY);
-    if (HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) != HAL_OK) {
-        xSemaphoreGive(i2c_mutex);
+    if(!pooling) {
+        if (HAL_I2C_Mem_Read_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) != HAL_OK) {
+        
         return 1;
-    }
-    uint8_t res = 0;
-    if (xSemaphoreTake(rx_complete, 1000) == pdTRUE) {
-        res = 0;
-    } else {
-        res = 1;
-    }
-    xSemaphoreGive(i2c_mutex);
-    return res;
+        }
+        if (xSemaphoreTake(rx_complete, 1000) == pdTRUE) {
+            return 0;
+        } 
+        return 1;
 
-    // assert_param(HAL_I2C_Mem_Read(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) == HAL_OK);
-    // return 0;
+    } else {
+        if (HAL_I2C_Mem_Read(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) != HAL_OK) {
+            return 1;
+        }
+        return 0;
+
+    }
 
 }
 
 uint8_t i2c_write(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
-    xSemaphoreTake(i2c_mutex, portMAX_DELAY);
-    if (HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) != HAL_OK) {
-        xSemaphoreGive(i2c_mutex);
+    if (!pooling) {
+        if (HAL_I2C_Mem_Write_DMA(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len) != HAL_OK) {
+       
         return 1;
-    }
-    uint8_t res = 0;
-    if (xSemaphoreTake(tx_complete, 1000) == pdTRUE) {
-        res = 0;
+        }
+        if (xSemaphoreTake(tx_complete, 1000) == pdTRUE) {
+            return 0;
+        } 
+        return 1;
     } else {
-        res = 1;
+        if (HAL_I2C_Mem_Write(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) != HAL_OK) {
+            return 1;
+        }
+        return 0;
     }
-    xSemaphoreGive(i2c_mutex);
-    return res;
-
-    // assert_param(HAL_I2C_Mem_Write(&hi2c, (uint16_t) addr, (uint16_t) reg, 1, buf, len, 1000) == HAL_OK);
-    // return 0;
-
 }
 
 

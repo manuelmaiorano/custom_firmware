@@ -29,7 +29,7 @@ int main(void) {
     // kalman_init();
 	// sensor_task_init();
 
-	assert_param(xTaskCreate(start_task, "strt", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &starttask_handle) == pdPASS);
+	assert_param(xTaskCreate(start_task, "strt", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &starttask_handle) == pdPASS);
 
 	//assert_param(xTaskCreate(mock_controller_task, "contr", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
 
@@ -45,13 +45,13 @@ int main(void) {
 }
 
 void init_controller() {
-	assert_param(xTaskCreate(mock_controller_task, "contr", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
+	assert_param(xTaskCreate(mock_controller_task, "contr", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
 }
 
 
 void mock_controller_task(void* param) {
 
-	uint32_t tick_period = 5;
+	uint32_t tick_period = 1;
 	state_t state;
 
 	while (1)
@@ -75,7 +75,6 @@ void start_task(void* param) {
 
 	while (1)
 	{
-		SEGGER_SYSVIEW_PrintfHost("LedTaskRunning\n");
 		digitalWrite(ledgpio, 1);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		digitalWrite(ledgpio, 0);

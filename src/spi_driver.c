@@ -9,187 +9,119 @@
 #include "spi_driver.h"
 
 
-#define SPI_TX_DMA_STREAM       DMA2_Stream5
-#define SPI_TX_DMA_IRQ          DMA2_Stream5_IRQn
-#define SPI_TX_DMA_IRQHandler   DMA2_Stream5_IRQHandler
-#define SPI_TX_DMA_CHANNEL      DMA_Channel_3
-#define SPI_TX_DMA_FLAG_TCIF    ((uint32_t)0x20000800)
+SPI_HandleTypeDef hspi;
 
-#define SPI_RX_DMA_STREAM       DMA2_Stream0
-#define SPI_RX_DMA_IRQ          DMA2_Stream0_IRQn
-#define SPI_RX_DMA_IRQHandler   DMA2_Stream0_IRQHandler
-#define SPI_RX_DMA_CHANNEL      DMA_Channel_3
-#define SPI_RX_DMA_FLAG_TCIF    ((uint32_t)0x10000020)
-
-
-#define SPI_I2S_DMAReq_Tx               ((uint16_t)0x0002)
-#define SPI_I2S_DMAReq_Rx               ((uint16_t)0x0001)
-
-static bool isInit = false;
-
-static SemaphoreHandle_t txComplete;
-static SemaphoreHandle_t rxComplete;
+// static SemaphoreHandle_t txComplete;
+// static SemaphoreHandle_t rxComplete;
+static SemaphoreHandle_t txrxComplete;
 static SemaphoreHandle_t spiMutex;
 
 static void spiConfigureWithSpeed(uint16_t baudRatePrescaler);
-static void spiDMAInit();
+
+void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
+
+  __GPIOA_CLK_ENABLE();
+  __SPI1_CLK_ENABLE();
+  __DMA2_CLK_ENABLE();
+  
+  GPIO_InitTypeDef Gpio_init_structure;
+  Gpio_init_structure.Mode = GPIO_MODE_AF_PP;
+  Gpio_init_structure.Speed = GPIO_SPEED_FAST;
+  Gpio_init_structure.Pull = GPIO_PULLDOWN;
+  Gpio_init_structure.Alternate = GPIO_AF5_SPI1;
+
+  Gpio_init_structure.Pin = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
+  HAL_GPIO_Init(GPIOA, &Gpio_init_structure);
+
+  static DMA_HandleTypeDef dma_handle_tx;
+  static DMA_HandleTypeDef dma_handle_rx;
+  
+  dma_handle_tx.Init.Channel = DMA_CHANNEL_3;
+  dma_handle_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+  dma_handle_tx.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_1QUARTERFULL;
+  dma_handle_tx.Init.MemBurst = DMA_MBURST_SINGLE;
+  dma_handle_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  dma_handle_tx.Init.MemInc = DMA_MINC_ENABLE;
+  dma_handle_tx.Init.Mode = DMA_NORMAL;
+  
+  dma_handle_tx.Init.PeriphBurst = DMA_PBURST_SINGLE;
+  dma_handle_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  dma_handle_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+  dma_handle_tx.Init.Priority = DMA_PRIORITY_HIGH;
+  
+  // Configure TX DMA
+  dma_handle_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+  dma_handle_tx.Instance = DMA2_Stream5;
+
+  assert_param(HAL_DMA_Init(&dma_handle_tx) == HAL_OK);
+
+  // Configure RX DMA
+  dma_handle_rx.Init = dma_handle_tx.Init;
+  dma_handle_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+  dma_handle_rx.Instance = DMA2_Stream0;
+  assert_param(HAL_DMA_Init(&dma_handle_rx) == HAL_OK);
+
+  __HAL_LINKDMA(hspi, hdmatx, dma_handle_tx);
+  __HAL_LINKDMA(hspi, hdmarx, dma_handle_rx);
+
+  // Configure interrupts
+  NVIC_SetPriority(DMA2_Stream5_IRQn, 7);
+  NVIC_EnableIRQ(DMA2_Stream5_IRQn);
+
+  NVIC_SetPriority(DMA2_Stream0_IRQn, 7);
+  NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+
+
+}
+
+
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi) {
+  
+  __SPI1_CLK_DISABLE();
+
+  HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
+
+  HAL_DMA_DeInit(hspi->hdmarx);
+  HAL_DMA_DeInit(hspi->hdmatx);
+
+}
 
 void spiBegin() {
+  txrxComplete = xSemaphoreCreateBinary();
+  // rxComplete = xSemaphoreCreateBinary();
+  spiMutex = xSemaphoreCreateMutex();
 
-
-    GPIO_InitTypeDef Gpio_init_structure;
-
-    // binary semaphores created using xSemaphoreCreateBinary() are created in a state
-    // such that the semaphore must first be 'given' before it can be 'taken'
-    txComplete = xSemaphoreCreateBinary();
-    rxComplete = xSemaphoreCreateBinary();
-    spiMutex = xSemaphoreCreateMutex();
-
-    __SPI1_CLK_ENABLE();
-
-    __GPIOA_CLK_ENABLE();
-
-    __DMA2_CLK_ENABLE();
-
-    Gpio_init_structure.Mode = GPIO_MODE_AF_PP;
-    Gpio_init_structure.Speed = GPIO_SPEED_FAST;
-    Gpio_init_structure.Pull = GPIO_PULLDOWN;
-    Gpio_init_structure.Alternate = GPIO_AF5_SPI1;
-
-    // Gpio_init_structure.Pin = GPIO_PIN_4;
-    // HAL_GPIO_Init(GPIOA, &Gpio_init_structure);
-
-    Gpio_init_structure.Pin = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
-    HAL_GPIO_Init(GPIOA, &Gpio_init_structure);
-
-    // Gpio_init_structure.Pin = GPIO_PIN_7;
-    // HAL_GPIO_Init(GPIOA, &Gpio_init_structure);
-
-    // Gpio_init_structure.Pin = GPIO_PIN_6;
-    // HAL_GPIO_Init(GPIOA, &Gpio_init_structure);
-
-    spiDMAInit();
-
-    spiConfigureWithSpeed(SPI_BAUDRATE_2MHZ);
-
-    isInit = true;
-}
-
-static void spiDMAInit() {
-
-    DMA_InitTypeDef DMA_init_structure;
-    
-    DMA_init_structure.FIFOMode = DMA_FIFOMODE_DISABLE;
-    DMA_init_structure.FIFOThreshold = DMA_FIFO_THRESHOLD_1QUARTERFULL;
-    DMA_init_structure.MemBurst = DMA_MBURST_SINGLE;
-    DMA_init_structure.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-    DMA_init_structure.MemInc = DMA_MINC_ENABLE;
-    DMA_init_structure.Mode = DMA_NORMAL;
-    
-    DMA_init_structure.PeriphBurst = DMA_PBURST_SINGLE;
-    DMA_init_structure.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    DMA_init_structure.PeriphInc = DMA_PINC_DISABLE;
-    DMA_init_structure.Priority = DMA_PRIORITY_HIGH;
-    
-    // Configure TX DMA
-    DMA_init_structure.Channel = DMA_CHANNEL_3;
-    DMA_init_structure.Direction = DMA_MEMORY_TO_PERIPH;
-    DMA_HandleTypeDef dma_handle_tx;
-    dma_handle_tx.Instance = DMA2_Stream5;
-    dma_handle_tx.Init = DMA_init_structure;
-    SPI_TX_DMA_STREAM->PAR = (uint32_t) (&(SPI1->DR)) ;
-    assert_param(HAL_DMA_Init(&dma_handle_tx) == HAL_OK);
-
-    // Configure RX DMA
-    DMA_init_structure.Channel = DMA_CHANNEL_3;
-    DMA_init_structure.Direction = DMA_PERIPH_TO_MEMORY;
-    DMA_HandleTypeDef dma_handle_rx;
-    dma_handle_rx.Instance = DMA2_Stream0;
-    dma_handle_rx.Init = DMA_init_structure;
-    SPI_RX_DMA_STREAM->PAR = (uint32_t) (&(SPI1->DR)) ;
-    assert_param(HAL_DMA_Init(&dma_handle_rx) == HAL_OK);
-
-    // Configure interrupts
-    NVIC_SetPriority(DMA2_Stream5_IRQn, 7);
-    NVIC_EnableIRQ(DMA2_Stream5_IRQn);
-
-    NVIC_SetPriority(DMA2_Stream0_IRQn, 7);
-    NVIC_EnableIRQ(DMA2_Stream0_IRQn);
-
+  spiConfigureWithSpeed(SPI_BAUDRATE_2MHZ);
 
 }
+
 
 static void spiConfigureWithSpeed(uint16_t baudRatePrescaler) {
-
-    SPI_InitTypeDef spi_init_structure;
-
-    
-    SPI_I2S_DeInit(SPI1);
-    
-    spi_init_structure.Direction = SPI_DIRECTION_2LINES;
-    spi_init_structure.Mode = SPI_MODE_MASTER;
-    spi_init_structure.DataSize = SPI_DATASIZE_8BIT;
-    spi_init_structure.CLKPolarity = SPI_POLARITY_LOW;
-    spi_init_structure.CLKPhase = SPI_PHASE_1EDGE;
-    spi_init_structure.NSS = SPI_NSS_SOFT;
-    spi_init_structure.FirstBit = SPI_FIRSTBIT_MSB;
-    spi_init_structure.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-    spi_init_structure.CRCPolynomial = 0;
-    spi_init_structure.BaudRatePrescaler = baudRatePrescaler;
-    spi_init_structure.NSSPMode = SPI_NSS_PULSE_DISABLE;
-    spi_init_structure.TIMode = SPI_TIMODE_DISABLE;
-    
-    SPI_HandleTypeDef spi_handle;
-    spi_handle.Init = spi_init_structure;
-    spi_handle.Instance = SPI1;
-    assert_param(HAL_SPI_Init(&spi_handle) == HAL_OK);
-}
-
-bool spiTest(void)
-{
-  return isInit;
+  
+  hspi.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi.Init.Mode = SPI_MODE_MASTER;
+  hspi.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi.Init.NSS = SPI_NSS_SOFT;
+  hspi.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi.Init.CRCPolynomial = 0;
+  hspi.Init.BaudRatePrescaler = baudRatePrescaler;
+  hspi.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+  hspi.Init.TIMode = SPI_TIMODE_DISABLE;
+  
+  hspi.Instance = SPI1;
+  HAL_SPI_DeInit(&hspi);
+  assert_param(HAL_SPI_Init(&hspi) == HAL_OK);
 }
 
 bool spiExchange(size_t length, const uint8_t * data_tx, uint8_t * data_rx) {
-  // DMA already configured, just need to set memory addresses
-  SPI_TX_DMA_STREAM->M0AR = (uint32_t)data_tx;
-  SPI_TX_DMA_STREAM->NDTR = length;
 
-  SPI_RX_DMA_STREAM->M0AR = (uint32_t)data_rx;
-  SPI_RX_DMA_STREAM->NDTR = length;
+  HAL_SPI_TransmitReceive_DMA(&hspi, data_tx, data_rx, (uint16_t) length);
+  bool result = (xSemaphoreTake(txrxComplete, portMAX_DELAY) == pdTRUE);
 
-
-  // Enable SPI DMA Interrupts
-  DMA_ITConfig(SPI_TX_DMA_STREAM, DMA_IT_TC, ENABLE);
-  DMA_ITConfig(SPI_RX_DMA_STREAM, DMA_IT_TC, ENABLE);
-  //DMA2_Stream5->CR |= DMA_SxCR_TCIE;
-  //DMA2_Stream0->CR |= DMA_SxCR_TCIE;	
-
-  // Clear DMA Flags
-  DMA_ClearFlag(SPI_TX_DMA_STREAM, DMA_FLAG_FEIF5|DMA_FLAG_DMEIF5|DMA_FLAG_TEIF5|DMA_FLAG_HTIF5|DMA_FLAG_TCIF5);
-  DMA_ClearFlag(SPI_RX_DMA_STREAM, DMA_FLAG_FEIF0|DMA_FLAG_DMEIF0|DMA_FLAG_TEIF0|DMA_FLAG_HTIF0|DMA_FLAG_TCIF0);
-  //clear_flags_start(SPI_TX_DMA_STREAM);
-  //clear_flags_start(SPI_RX_DMA_STREAM);
-
-  // Enable DMA Streams
-  DMA_Cmd(SPI_TX_DMA_STREAM,ENABLE);
-  DMA_Cmd(SPI_RX_DMA_STREAM,ENABLE);
-
-  // Enable SPI DMA requests
-  SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
-  SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, ENABLE);
-
-  // Enable peripheral
-  SPI_Cmd(SPI1, ENABLE);
-
-  // Wait for completion
-  bool result = (xSemaphoreTake(txComplete, portMAX_DELAY) == pdTRUE)
-             && (xSemaphoreTake(rxComplete, portMAX_DELAY) == pdTRUE);
-
-  // Disable peripheral
-  SPI_Cmd(SPI1, DISABLE);
   return result;
-
 
 }
 
@@ -205,54 +137,25 @@ void spiEndTransaction()
 }
 
 
-void DMA2_Stream5_IRQHandler(void) {
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) {
   portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
-  // Stop and cleanup DMA stream
-  DMA_ITConfig(SPI_TX_DMA_STREAM, DMA_IT_TC, DISABLE);
-  DMA_ClearITPendingBit(SPI_TX_DMA_STREAM, SPI_TX_DMA_FLAG_TCIF);
-
-  // Clear stream flags
-  DMA_ClearFlag(SPI_TX_DMA_STREAM,SPI_TX_DMA_FLAG_TCIF);
-  //clear_flag_tc(SPI_TX_DMA_STREAM);
-
-  // Disable SPI DMA requests
-  SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, DISABLE);
-
-  // Disable streams
-  DMA_Cmd(SPI_TX_DMA_STREAM,DISABLE);
-
-  // Give the semaphore, allowing the SPI transaction to complete
-  xSemaphoreGiveFromISR(txComplete, &xHigherPriorityTaskWoken);
+  xSemaphoreGiveFromISR(txrxComplete, &xHigherPriorityTaskWoken);
 
   if (xHigherPriorityTaskWoken)
   {
     portYIELD();
   }
+
+
+}
+
+
+void DMA2_Stream5_IRQHandler(void) {
+  HAL_DMA_IRQHandler(hspi.hdmatx);
 }
 
 void DMA2_Stream0_IRQHandler(void) {
-  portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+  HAL_DMA_IRQHandler(hspi.hdmarx);
 
-  // Stop and cleanup DMA stream
-  DMA_ITConfig(SPI_RX_DMA_STREAM, DMA_IT_TC, DISABLE);
-  DMA_ClearITPendingBit(SPI_RX_DMA_STREAM, SPI_RX_DMA_FLAG_TCIF);
-
-  // Clear stream flags
-  DMA_ClearFlag(SPI_RX_DMA_STREAM,SPI_RX_DMA_FLAG_TCIF);
-  //clear_flag_tc(SPI_RX_DMA_STREAM);
-
-  // Disable SPI DMA requests
-  SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, DISABLE);
-
-  // Disable streams
-  DMA_Cmd(SPI_RX_DMA_STREAM,DISABLE);
-
-  // Give the semaphore, allowing the SPI transaction to complete
-  xSemaphoreGiveFromISR(rxComplete, &xHigherPriorityTaskWoken);
-
-  if (xHigherPriorityTaskWoken)
-  {
-    portYIELD();
-  }
 }
