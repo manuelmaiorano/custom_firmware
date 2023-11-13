@@ -74,15 +74,15 @@ void start_task(void* param) {
 	HAL_GPIO_Init(ledgpio.port, &gpio_init_struct);
 
 	kalman_init();
-	//init_loco_deck();
+	init_loco_deck();
 	sensor_task_init();
 	init_controller();
 
 	while (1)
 	{
-		digitalWrite(ledgpio, 1);
+  		HAL_GPIO_WritePin(ledgpio.port, ledgpio.pin, GPIO_PIN_SET);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		digitalWrite(ledgpio, 0);
+  		HAL_GPIO_WritePin(ledgpio.port, ledgpio.pin, GPIO_PIN_RESET);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 	

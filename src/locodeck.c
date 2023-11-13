@@ -11,15 +11,14 @@
 #include "queue.h"
 
 #include "config.h"
-#include "gpio_utils.h"
 #include "locodeck.h"
 #include "spi_driver.h"
+#include "gpio_utils.h"
 
 
 #include "lpsTdoa2Tag.h"
 
 static void dwm1000Init();
-
 
 static const gpio_port_pin_t CS_PORT_PIN = {.port=GPIOB, .pin=GPIO_PIN_1};
 static const gpio_port_pin_t RESET_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_9};
@@ -79,7 +78,7 @@ static void uwbTask(void* parameters) {
         xSemaphoreTake(algoSemaphore, portMAX_DELAY);
         dwHandleInterrupt(dwm);
         xSemaphoreGive(algoSemaphore);
-      } while(digitalRead(IRQ_PORT_PIN) != 0);
+      } while(HAL_GPIO_ReadPin(IRQ_PORT_PIN.port, IRQ_PORT_PIN.pin) != GPIO_PIN_RESET);
     } else {
       xSemaphoreTake(algoSemaphore, portMAX_DELAY);
       timeout = algorithm->onEvent(dwm, eventTimeout);
@@ -119,27 +118,25 @@ static void spiWrite(dwDevice_t* dev, const void *header, size_t headerLength,
                                       const void* data, size_t dataLength)
 {
   spiBeginTransaction(spiSpeed);
-  digitalWrite(CS_PORT_PIN, LOW);
+  HAL_GPIO_WritePin(CS_PORT_PIN.port, CS_PORT_PIN.pin, GPIO_PIN_RESET);
   memcpy(spiTxBuffer, header, headerLength);
   memcpy(spiTxBuffer+headerLength, data, dataLength);
   spiExchange(headerLength+dataLength, spiTxBuffer, spiRxBuffer);
-  digitalWrite(CS_PORT_PIN, HIGH);
+  HAL_GPIO_WritePin(CS_PORT_PIN.port, CS_PORT_PIN.pin, GPIO_PIN_SET);
   spiEndTransaction();
-  //STATS_CNT_RATE_EVENT(&spiWriteCount);
 }
 
 static void spiRead(dwDevice_t* dev, const void *header, size_t headerLength,
                                      void* data, size_t dataLength)
 {
   spiBeginTransaction(spiSpeed);
-  digitalWrite(CS_PORT_PIN, LOW);
+  HAL_GPIO_WritePin(CS_PORT_PIN.port, CS_PORT_PIN.pin, GPIO_PIN_RESET);
   memcpy(spiTxBuffer, header, headerLength);
   memset(spiTxBuffer+headerLength, 0, dataLength);
   spiExchange(headerLength+dataLength, spiTxBuffer, spiRxBuffer);
   memcpy(data, spiRxBuffer+headerLength, dataLength);
-  digitalWrite(CS_PORT_PIN, HIGH);
+  HAL_GPIO_WritePin(CS_PORT_PIN.port, CS_PORT_PIN.pin, GPIO_PIN_SET);
   spiEndTransaction();
-  //STATS_CNT_RATE_EVENT(&spiReadCount);
 }
 
 void exti12_callback(void)
@@ -223,10 +220,10 @@ static void dwm1000Init()
   NVIC_EnableIRQ(EXTI15_10_IRQn);
 
   // Reset the DW1000 chip
-  digitalWrite(RESET_PORT_PIN, 0);
+  HAL_GPIO_WritePin(RESET_PORT_PIN.port, RESET_PORT_PIN.pin, GPIO_PIN_RESET);
   //HAL_Delay(10);
   vTaskDelay(M2T(10));
-  digitalWrite(RESET_PORT_PIN, 1);
+  HAL_GPIO_WritePin(RESET_PORT_PIN.port, RESET_PORT_PIN.pin, GPIO_PIN_SET);
   vTaskDelay(M2T(10));
   //HAL_Delay(10);
 

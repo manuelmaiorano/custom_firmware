@@ -37,7 +37,6 @@ SRC_C += src/lpsTdoa2Tag.c
 SRC_C += src/tdoaStorage.c
 SRC_C += src/tdoaEngineInstance.c
 SRC_C += src/system_stm32f7xx.c
-SRC_C += src/gpio_utils.c
 SRC_C += src/outlierFilterTdoa.c
 SRC_C += src/sensor_task.c
 SRC_C += src/i2c_driver.c

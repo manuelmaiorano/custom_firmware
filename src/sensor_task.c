@@ -5,8 +5,8 @@
 #include <stm32f7xx_hal.h>
 #include "estimator.h"
 #include "stabilizer_types.h"
-#include "gpio_utils.h"
 #include "config.h"
+#include "gpio_utils.h"
 
 uint8_t res;
 
