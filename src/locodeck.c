@@ -14,7 +14,6 @@
 #include "gpio_utils.h"
 #include "locodeck.h"
 #include "spi_driver.h"
-#include "exti_utils.h"
 
 
 #include "lpsTdoa2Tag.h"

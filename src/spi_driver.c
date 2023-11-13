@@ -2,8 +2,6 @@
 #include <stdbool.h>
 #include <stm32f7xx_hal.h>
 
-#include <dma_spi_utils.h>
-
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "spi_driver.h"
@@ -23,7 +21,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
   __GPIOA_CLK_ENABLE();
   __SPI1_CLK_ENABLE();
   __DMA2_CLK_ENABLE();
-  
+
   GPIO_InitTypeDef Gpio_init_structure;
   Gpio_init_structure.Mode = GPIO_MODE_AF_PP;
   Gpio_init_structure.Speed = GPIO_SPEED_FAST;
