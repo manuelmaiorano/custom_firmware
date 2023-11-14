@@ -1,9 +1,6 @@
 
 #include "mm_tdoa.h"
 
-#if CONFIG_ESTIMATOR_KALMAN_TDOA_OUTLIERFILTER_FALLBACK
-#include "outlierFilterTdoaSteps.h"
-#endif
 
 void kalmanCoreUpdateWithTdoa(kalmanCoreData_t* this, tdoaMeasurement_t *tdoa, const uint32_t nowMs, OutlierFilterTdoaState_t* outlierFilterState)
 {
@@ -43,24 +40,7 @@ void kalmanCoreUpdateWithTdoa(kalmanCoreData_t* this, tdoaMeasurement_t *tdoa, c
     h[KC_STATE_X] = (dx1 / d1 - dx0 / d0);
     h[KC_STATE_Y] = (dy1 / d1 - dy0 / d0);
     h[KC_STATE_Z] = (dz1 / d1 - dz0 / d0);
-
-  #if CONFIG_ESTIMATOR_KALMAN_TDOA_OUTLIERFILTER_FALLBACK
-    vector_t jacobian = {
-      .x = h[KC_STATE_X],
-      .y = h[KC_STATE_Y],
-      .z = h[KC_STATE_Z],
-    };
-
-    point_t estimatedPosition = {
-      .x = this->S[KC_STATE_X],
-      .y = this->S[KC_STATE_Y],
-      .z = this->S[KC_STATE_Z],
-    };
-
-    bool sampleIsGood = outlierFilterTdoaValidateSteps(tdoa, error, &jacobian, &estimatedPosition);
-    #else
     bool sampleIsGood = outlierFilterTdoaValidateIntegrator(outlierFilterState, tdoa, error, nowMs);
-    #endif
 
     if (sampleIsGood) {
       kalmanCoreScalarUpdate(this, &H, error, tdoa->stdDev);

@@ -35,7 +35,7 @@ static kalmanCoreParams_t coreParams;
 
 static state_t taskEstimatorState; // The estimator state produced by the task, copied to the stabilizer when needed.
 
-kalmanCoreData_t coreData;
+static kalmanCoreData_t coreData;
 
 static bool isInit = false;
 
