@@ -4,11 +4,11 @@
 #include <SEGGER_SYSVIEW.h>
 #include "gpio_utils.h"
 #include "sensor_task.h"
-
-
+#include <SEGGER_RTT.h>
 
 #include "locodeck.h"
 #include "estimator.h"
+#include "config.h"
 
 TaskHandle_t starttask_handle;
 TaskHandle_t controllertask_handle;
@@ -22,6 +22,7 @@ int main(void) {
     HAL_Init();
     SystemClock_Config();
 
+	SEGGER_RTT_Init();
 	SEGGER_SYSVIEW_Conf();
     NVIC_SetPriorityGrouping(0);
 
@@ -29,7 +30,7 @@ int main(void) {
     // kalman_init();
 	// sensor_task_init();
 
-	assert_param(xTaskCreate(start_task, "strt", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &starttask_handle) == pdPASS);
+	assert_param(xTaskCreate(start_task, "strt", 2*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &starttask_handle) == pdPASS);
 
 	//assert_param(xTaskCreate(mock_controller_task, "contr", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
 
@@ -45,7 +46,7 @@ int main(void) {
 }
 
 void init_controller() {
-	assert_param(xTaskCreate(mock_controller_task, "contr", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
+	assert_param(xTaskCreate(mock_controller_task, "contr", 2*configMINIMAL_STACK_SIZE, NULL, STABILIZER_TASK_PRI, &controllertask_handle) == pdPASS);
 }
 
 state_t state;
@@ -73,8 +74,9 @@ void start_task(void* param) {
 	gpio_init_struct.Speed = GPIO_SPEED_MEDIUM;
 	HAL_GPIO_Init(ledgpio.port, &gpio_init_struct);
 
+	SEGGER_RTT_printf(0, "starting\n");
 	kalman_init();
-	init_loco_deck();
+	//init_loco_deck();
 	sensor_task_init();
 	init_controller();
 
@@ -84,6 +86,9 @@ void start_task(void* param) {
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
   		HAL_GPIO_WritePin(ledgpio.port, ledgpio.pin, GPIO_PIN_RESET);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		SEGGER_RTT_printf(0, "worker task running\n");
+
+	
 	}
 	
 }
@@ -170,7 +175,8 @@ void Error_Handler(void)
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	SEGGER_SYSVIEW_PrintfHost("Assertion Failed:file %s \
+	
+	SEGGER_RTT_printf(0, "Assertion Failed:file %s \
                             on line %d\r\n", file, line);
   	while(1);
 }

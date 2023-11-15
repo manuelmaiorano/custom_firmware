@@ -129,7 +129,7 @@ Revision: $Rev: 6249 $
  * NOTE: If your SystemView is showing RED spots, then the size of
  * this buffer likely needs to be increased
  */
-#define SEGGER_SYSVIEW_RTT_BUFFER_SIZE      10240
+#define SEGGER_SYSVIEW_RTT_BUFFER_SIZE      30720
 
 #define SEGGER_SYSVIEW_RTT_CHANNEL          1                                   // The RTT channel that SystemView will use. 0: Auto selection
 

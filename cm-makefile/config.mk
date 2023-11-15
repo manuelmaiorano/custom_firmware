@@ -71,7 +71,7 @@ ASFLAGS = $(ARCHFLAGS)
 # TODO: Add -fno-builtin?
 CFLAGS = $(ARCHFLAGS) $(OPTFLAGS) $(DBGFLAGS) $(WARNFLAGS) $(PREPFLAGS) \
          $(STDFLAGS) \
-         -ffunction-sections -fdata-sections -fno-strict-aliasing \
+         -ffunction-sections -fdata-sections -fno-strict-aliasing -fstack-usage \
          $(SPECSFLAGS)
 
 # CXX: Similar configuration as CC. Remove C-only warning flags, omit
