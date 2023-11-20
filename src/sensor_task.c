@@ -137,6 +137,9 @@ void sensor_task(void* param) {
 
         
         if (!gyro_bias.isBiasValueFound) {
+            if (dps[0]> 10 || dps[1] > 10 || dps[2] > 10) {
+              continue;
+            }
             sensorsAddBiasValue(&gyro_bias, dps[0], dps[1], dps[2]);
             sensorsFindBiasValue(&gyro_bias);
             continue;
@@ -146,12 +149,12 @@ void sensor_task(void* param) {
         
         measurement.type = MeasurementTypeAcceleration;
         g_post[0] = g[0]/accScale; 
-        g_post[1] = g[0]/accScale;
-        g_post[2] = g[0]/accScale;
+        g_post[1] = g[1]/accScale;
+        g_post[2] = g[2]/accScale;
 
-        vec.x = 0; 
-        vec.y = 0;
-        vec.z = 1;
+        vec.x = g_post[0]; 
+        vec.y = g_post[1];
+        vec.z = g_post[2];
         measurement.data.acceleration.acc = vec;
         estimatorEnqueue(&measurement); 
 
@@ -160,9 +163,9 @@ void sensor_task(void* param) {
         dps_post[1] = dps[1] - gyro_bias.bias.y;
         dps_post[2] = dps[2] - gyro_bias.bias.z;
 
-        vec.x = 0; 
-        vec.y = 0;
-        vec.z = 0;
+        vec.x = dps_post[0]; 
+        vec.y = dps_post[1];
+        vec.z = dps_post[2];
         measurement.data.gyroscope.gyro = vec;
         estimatorEnqueue(&measurement); 
 
