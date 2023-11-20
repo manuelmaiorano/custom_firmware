@@ -10,8 +10,16 @@
 #include "estimator.h"
 #include "config.h"
 
-TaskHandle_t starttask_handle;
-TaskHandle_t controllertask_handle;
+#define STRT_TASK_STACKSIZE 2*configMINIMAL_STACK_SIZE
+
+TaskHandle_t start_task_handle;
+StackType_t start_task_Stack[STRT_TASK_STACKSIZE];
+StaticTask_t start_task_TCB;
+
+
+TaskHandle_t contr_task_handle;
+StackType_t contr_task_Stack[STABILIZER_TASK_STACKSIZE];
+StaticTask_t contr_task_TCB;
 
 
 void start_task(void* param);
@@ -26,14 +34,7 @@ int main(void) {
 	SEGGER_SYSVIEW_Conf();
     NVIC_SetPriorityGrouping(0);
 
-
-    // kalman_init();
-	// sensor_task_init();
-
-	assert_param(xTaskCreate(start_task, "strt", 2*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &starttask_handle) == pdPASS);
-
-	//assert_param(xTaskCreate(mock_controller_task, "contr", 4*configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &controllertask_handle) == pdPASS);
-
+	start_task_handle = xTaskCreateStatic(start_task, "strt", STRT_TASK_STACKSIZE, NULL, tskIDLE_PRIORITY +1, start_task_Stack, &start_task_TCB);
 
     //start the scheduler - shouldn't return unless there's a problem
 	vTaskStartScheduler();
@@ -46,7 +47,8 @@ int main(void) {
 }
 
 void init_controller() {
-	assert_param(xTaskCreate(mock_controller_task, "contr", 2*configMINIMAL_STACK_SIZE, NULL, STABILIZER_TASK_PRI, &controllertask_handle) == pdPASS);
+	contr_task_handle = xTaskCreateStatic(mock_controller_task, "contr", STABILIZER_TASK_STACKSIZE, NULL, STABILIZER_TASK_PRI, contr_task_Stack, &contr_task_TCB);
+
 }
 
 state_t state;
@@ -54,7 +56,7 @@ state_t state;
 void mock_controller_task(void* param) {
 
 	uint32_t tick_period = 1;
-
+	vTaskDelay(5000);
 	while (1)
 	{
 		vTaskDelay(tick_period);
@@ -74,9 +76,9 @@ void start_task(void* param) {
 	gpio_init_struct.Speed = GPIO_SPEED_MEDIUM;
 	HAL_GPIO_Init(ledgpio.port, &gpio_init_struct);
 
-	SEGGER_RTT_printf(0, "starting\n");
+	//SEGGER_RTT_printf(0, "starting\n");
 	kalman_init();
-	//init_loco_deck();
+	init_loco_deck();
 	sensor_task_init();
 	init_controller();
 
@@ -181,3 +183,10 @@ void assert_failed(uint8_t *file, uint32_t line)
   	while(1);
 }
 #endif
+
+
+void vApplicationStackOverflowHook (TaskHandle_t xTask, signed char *pcTaskName){
+	while (1) {
+		
+	}
+}

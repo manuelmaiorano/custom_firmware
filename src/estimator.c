@@ -21,9 +21,11 @@
 #define MEASUREMENTS_QUEUE_SIZE (21)
 static xQueueHandle measurementsQueue;
 static StaticQueue_t queue_structure;
-static measurement_t queue_array[MEASUREMENTS_QUEUE_SIZE];
+static uint8_t queue_array[MEASUREMENTS_QUEUE_SIZE * sizeof(measurement_t)];
 
 static TaskHandle_t task_handle = 0;
+static StackType_t estimatortask_Stack[KALMAN_TASK_STACKSIZE];
+static StaticTask_t estimatortask_TCB;
 
 static SemaphoreHandle_t runTaskSemaphore;
 static SemaphoreHandle_t dataMutex;
@@ -38,6 +40,9 @@ static state_t taskEstimatorState; // The estimator state produced by the task, 
 static kalmanCoreData_t coreData;
 
 static bool isInit = false;
+
+static bool resetEstimation = false;
+
 
 static Axis3fSubSampler_t accSubSampler;
 static Axis3fSubSampler_t gyroSubSampler;
@@ -62,8 +67,7 @@ void estimatorKalmanTaskInit() {
 
   measurementsQueue = xQueueCreateStatic(MEASUREMENTS_QUEUE_SIZE, sizeof(measurement_t), queue_array, &queue_structure);
 
-  assert_param(xTaskCreate(kalmanTask, KALMAN_TASK_NAME, KALMAN_TASK_STACKSIZE, NULL,
-                    KALMAN_TASK_PRI, &task_handle) == pdPASS);
+  xTaskCreateStatic(kalmanTask, KALMAN_TASK_NAME, KALMAN_TASK_STACKSIZE, NULL, KALMAN_TASK_PRI, estimatortask_Stack, &estimatortask_TCB);
 
 }
 
@@ -99,7 +103,8 @@ void estimatorEnqueueTDOA(const tdoaMeasurement_t *tdoa_measurement) {
     measurement_t m;
     m.type = MeasurementTypeTDOA;
     m.data.tdoa = *tdoa_measurement;
-    estimatorEnqueue(&m); 
+    //estimatorEnqueue(&m); 
+    xQueueSend(measurementsQueue, &m, 0);
 
 }
 
@@ -116,18 +121,28 @@ static void kalmanTask(void* parameters) {
 
     uint32_t nowMs = T2M(xTaskGetTickCount());
     uint32_t nextPredictionMs = nowMs;
-
+    bool first = true;
     estimatorKalmanInit();
     while (true) {
         xSemaphoreTake(runTaskSemaphore, portMAX_DELAY);
-
+        // if (resetEstimation) {
+        //   estimatorKalmanInit();
+        //   resetEstimation = false;
+        // }
         nowMs = T2M(xTaskGetTickCount()); 
+        if(first) {
+          coreData.lastPredictionMs = nowMs;
+          coreData.lastProcessNoiseUpdateMs = nowMs;
+          first = false;
+        }
+
 
         if (nowMs >= nextPredictionMs) {
           axis3fSubSamplerFinalize(&accSubSampler);
           axis3fSubSamplerFinalize(&gyroSubSampler);
-
+          
           kalmanCorePredict(&coreData, &accSubSampler.subSample, &gyroSubSampler.subSample, nowMs, false);
+     
           nextPredictionMs = nowMs + PREDICTION_UPDATE_INTERVAL_MS;
 
         }
@@ -167,7 +182,7 @@ static void updateQueuedMeasurements(const uint32_t nowMs) {
         switch (m.type)
         {
           case MeasurementTypeTDOA:
-            kalmanCoreUpdateWithTdoa(&coreData, &m, nowMs, &outlierFilterTdoaState);
+            kalmanCoreUpdateWithTdoa(&coreData, &m.data.tdoa, nowMs, &outlierFilterTdoaState);
             break;
           case MeasurementTypeGyroscope:
             axis3fSubSamplerAccumulate(&gyroSubSampler, &m.data.gyroscope.gyro);

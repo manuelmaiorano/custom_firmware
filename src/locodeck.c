@@ -10,6 +10,8 @@
 #include "task.h"
 #include "queue.h"
 
+#include <SEGGER_SYSVIEW.h>
+
 #include "config.h"
 #include "locodeck.h"
 #include "spi_driver.h"
@@ -30,7 +32,11 @@ static const gpio_port_pin_t IRQ_PORT_PIN = {.port=GPIOC, .pin=GPIO_PIN_12 };
 static uwbAlgorithm_t *algorithm = &uwbTdoa2TagAlgorithm;
 
 static bool isInit = false;
-static TaskHandle_t uwbTaskHandle = 0;
+static TaskHandle_t uwbTaskHandle;
+static StackType_t uwbtask_Stack[LPS_DECK_STACKSIZE];
+static StaticTask_t uwbtask_TCB;
+
+
 static SemaphoreHandle_t algoSemaphore;
 static dwDevice_t dwm_device;
 static dwDevice_t *dwm = &dwm_device;
@@ -156,7 +162,9 @@ void exti12_callback(void)
 
 void  EXTI15_10_IRQHandler(void)
 {
+  SEGGER_SYSVIEW_RecordEnterISR();
   HAL_EXTI_IRQHandler(&exti_handle);
+  SEGGER_SYSVIEW_RecordExitISR();
 }
 
 static void spiSetSpeed(dwDevice_t* dev, dwSpiSpeed_t speed)
@@ -266,8 +274,8 @@ static void dwm1000Init()
 
   algoSemaphore= xSemaphoreCreateMutex();
 
-  assert_param(xTaskCreate(uwbTask, LPS_DECK_TASK_NAME, LPS_DECK_STACKSIZE, NULL,
-                    LPS_DECK_TASK_PRI, &uwbTaskHandle) == pdPASS);
+  uwbTaskHandle = xTaskCreateStatic(uwbTask, LPS_DECK_TASK_NAME, LPS_DECK_STACKSIZE, NULL, LPS_DECK_TASK_PRI, uwbtask_Stack, &uwbtask_TCB);
+
 
   isInit = true;
 

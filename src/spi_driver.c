@@ -18,6 +18,28 @@ static void spiConfigureWithSpeed(uint16_t baudRatePrescaler);
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
 
+
+
+}
+
+
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi) {
+  
+  __SPI1_CLK_DISABLE();
+
+  HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
+
+  HAL_DMA_DeInit(hspi->hdmarx);
+  HAL_DMA_DeInit(hspi->hdmatx);
+
+}
+
+void spiBegin() {
+  txrxComplete = xSemaphoreCreateBinary();
+  // rxComplete = xSemaphoreCreateBinary();
+  spiMutex = xSemaphoreCreateMutex();
+
+
   __GPIOA_CLK_ENABLE();
   __SPI1_CLK_ENABLE();
   __DMA2_CLK_ENABLE();
@@ -59,8 +81,8 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
   dma_handle_rx.Instance = DMA2_Stream0;
   assert_param(HAL_DMA_Init(&dma_handle_rx) == HAL_OK);
 
-  __HAL_LINKDMA(hspi, hdmatx, dma_handle_tx);
-  __HAL_LINKDMA(hspi, hdmarx, dma_handle_rx);
+  __HAL_LINKDMA(&hspi, hdmatx, dma_handle_tx);
+  __HAL_LINKDMA(&hspi, hdmarx, dma_handle_rx);
 
   // Configure interrupts
   NVIC_SetPriority(DMA2_Stream5_IRQn, 7);
@@ -68,26 +90,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
 
   NVIC_SetPriority(DMA2_Stream0_IRQn, 7);
   NVIC_EnableIRQ(DMA2_Stream0_IRQn);
-
-
-}
-
-
-void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi) {
-  
-  __SPI1_CLK_DISABLE();
-
-  HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
-
-  HAL_DMA_DeInit(hspi->hdmarx);
-  HAL_DMA_DeInit(hspi->hdmatx);
-
-}
-
-void spiBegin() {
-  txrxComplete = xSemaphoreCreateBinary();
-  // rxComplete = xSemaphoreCreateBinary();
-  spiMutex = xSemaphoreCreateMutex();
 
   spiConfigureWithSpeed(SPI_BAUDRATE_2MHZ);
 
@@ -110,16 +112,22 @@ static void spiConfigureWithSpeed(uint16_t baudRatePrescaler) {
   hspi.Init.TIMode = SPI_TIMODE_DISABLE;
   
   hspi.Instance = SPI1;
-  HAL_SPI_DeInit(&hspi);
+  //HAL_SPI_DeInit(&hspi);
   assert_param(HAL_SPI_Init(&hspi) == HAL_OK);
 }
 
+static bool pooling = 1;
+
 bool spiExchange(size_t length, const uint8_t * data_tx, uint8_t * data_rx) {
 
+if(!pooling) {
   HAL_SPI_TransmitReceive_DMA(&hspi, data_tx, data_rx, (uint16_t) length);
   bool result = (xSemaphoreTake(txrxComplete, portMAX_DELAY) == pdTRUE);
-
   return result;
+} else {
+  return HAL_SPI_TransmitReceive(&hspi, data_tx, data_rx, (uint16_t) length, 1000);
+}
+ 
 
 }
 
@@ -150,10 +158,14 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) {
 
 
 void DMA2_Stream5_IRQHandler(void) {
+  SEGGER_SYSVIEW_RecordEnterISR();
   HAL_DMA_IRQHandler(hspi.hdmatx);
+  SEGGER_SYSVIEW_RecordExitISR();
 }
 
 void DMA2_Stream0_IRQHandler(void) {
+  SEGGER_SYSVIEW_RecordEnterISR();
   HAL_DMA_IRQHandler(hspi.hdmarx);
+  SEGGER_SYSVIEW_RecordExitISR();
 
 }

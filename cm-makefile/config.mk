@@ -71,7 +71,7 @@ ASFLAGS = $(ARCHFLAGS)
 # TODO: Add -fno-builtin?
 CFLAGS = $(ARCHFLAGS) $(OPTFLAGS) $(DBGFLAGS) $(WARNFLAGS) $(PREPFLAGS) \
          $(STDFLAGS) \
-         -ffunction-sections -fdata-sections -fno-strict-aliasing -fstack-usage \
+         -ffunction-sections -fdata-sections -fno-strict-aliasing -fstack-usage -fdump-rtl-dfinish\
          $(SPECSFLAGS)
 
 # CXX: Similar configuration as CC. Remove C-only warning flags, omit
@@ -88,7 +88,7 @@ CXXFLAGS = $(ARCHFLAGS) $(OPTFLAGS) $(DBGFLAGS) $(CXXWARNFLAGS) $(PREPFLAGS) \
 
 # LD: Remove unused sections, link with newlib-nano implementation, generate map
 LDFLAGS = $(ARCHFLAGS) $(OPTFLAGS) $(DBGFLAGS) \
-          -Wl,-Map=$(BUILD_DIR)/$(BIN).map -Wl,--gc-sections \
+          -Wl,-Map=$(BUILD_DIR)/$(BIN).map -Wl,--gc-sections -Wstack-usage=640\
           $(SPECSFLAGS)
 
 # Generate object list from source files and add their dirs to search path

@@ -39,7 +39,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <SEGGER_RTT.h>
-#include <SEGGER_SYSVIEW.h>
 
 /**
  * @brief  interface iic bus init
@@ -117,7 +116,6 @@ void mpu6050_interface_delay_ms(uint32_t ms)
 void mpu6050_interface_debug_print(const char *const fmt, ...)
 {
     SEGGER_RTT_printf(0, fmt);
-    SEGGER_SYSVIEW_PrintfHost(fmt);
 
 }
 

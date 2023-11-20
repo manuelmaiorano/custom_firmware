@@ -19,11 +19,14 @@ float dps_post[3];
 mpu6050_address_t addr;
 
 TaskHandle_t sensortask_handle;
+static StackType_t sensortask_Stack[SENSORS_TASK_STACKSIZE];
+static StaticTask_t sensortask_TCB;
+
 
 static EXTI_HandleTypeDef exti_handle;
 
 
-#define SENSORS_NBR_OF_BIAS_SAMPLES     1024
+#define SENSORS_NBR_OF_BIAS_SAMPLES     500
 #define GYRO_VARIANCE_BASE          50
 #define GYRO_VARIANCE_THRESHOLD_X   (GYRO_VARIANCE_BASE)
 #define GYRO_VARIANCE_THRESHOLD_Y   (GYRO_VARIANCE_BASE)
@@ -44,7 +47,7 @@ typedef struct
   Axis3f     mean;
   bool       isBiasValueFound;
   bool       isBufferFilled;
-  Axis3f*  bufHead;
+  uint32_t  current_index;
   Axis3f   buffer[SENSORS_NBR_OF_BIAS_SAMPLES];
 } BiasObj;
 
@@ -65,18 +68,6 @@ static float accScale = 1;
 
 void sensor_task(void* param);
 
-
-void sensor_task_init() {
-
-    assert_param(xTaskCreate(sensor_task, "sens", 4*configMINIMAL_STACK_SIZE, NULL, SENSORS_TASK_PRI, &sensortask_handle) == pdPASS);
-}
-
-
-void  EXTI9_5_IRQHandler(void)
-{
-  HAL_EXTI_IRQHandler(&exti_handle);
-
-}
 
 void exti5_callback(void) {
   if(isInit) {
@@ -107,9 +98,22 @@ void setup_interrupt() {
     NVIC_EnableIRQ(EXTI9_5_IRQn);
 }
 
-void sensor_task(void* param) {
+void sensor_task_init() {
 
     setup_interrupt();
+    sensortask_handle = xTaskCreateStatic(sensor_task, "sens", SENSORS_TASK_STACKSIZE, NULL, SENSORS_TASK_PRI, sensortask_Stack, &sensortask_TCB);
+}
+
+
+void  EXTI9_5_IRQHandler(void)
+{
+  SEGGER_SYSVIEW_RecordEnterISR();
+  HAL_EXTI_IRQHandler(&exti_handle);
+  SEGGER_SYSVIEW_RecordExitISR();
+
+}
+
+void sensor_task(void* param) {
 
     addr = MPU6050_ADDRESS_AD0_LOW;
     res = mpu6050_basic_init(addr);
@@ -123,35 +127,31 @@ void sensor_task(void* param) {
 
     while(1) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        //mpu6050_clear_interrupt();
-        //vTaskDelay(20);
         if (mpu6050_basic_read(g, dps) != 0){
-            //assert_param(0);
             mpu6050_basic_deinit();
             vTaskDelay(10);
             mpu6050_basic_init(addr);
+            vTaskDelay(10);
             continue;
-            //(void)mpu6050_basic_deinit();
-            //assert_param(0);
         }
-        //SEGGER_SYSVIEW_PrintfHost("acc: %x, %x, %x", g[0], g[1], g[2]);
-        //SEGGER_SYSVIEW_PrintfHost("gyro: %x, %x, %x", dps[0], dps[1], dps[2]);
 
-        sensorsAddBiasValue(&gyro_bias, dps[0], dps[1], dps[2]);
+        
         if (!gyro_bias.isBiasValueFound) {
+            sensorsAddBiasValue(&gyro_bias, dps[0], dps[1], dps[2]);
             sensorsFindBiasValue(&gyro_bias);
+            continue;
         } else {
             processAccScale(g[0], g[1], g[2]);
         }
         
         measurement.type = MeasurementTypeAcceleration;
-        g_post[0] = g[0] / accScale; 
-        g_post[1] = g[1] / accScale;
-        g_post[2] = g[2] / accScale;
+        g_post[0] = g[0]/accScale; 
+        g_post[1] = g[0]/accScale;
+        g_post[2] = g[0]/accScale;
 
-        vec.x = g[0] / accScale; 
-        vec.y = g[1] / accScale;
-        vec.z = g[2] / accScale;
+        vec.x = 0; 
+        vec.y = 0;
+        vec.z = 1;
         measurement.data.acceleration.acc = vec;
         estimatorEnqueue(&measurement); 
 
@@ -160,9 +160,9 @@ void sensor_task(void* param) {
         dps_post[1] = dps[1] - gyro_bias.bias.y;
         dps_post[2] = dps[2] - gyro_bias.bias.z;
 
-        vec.x = dps[0] - gyro_bias.bias.x; 
-        vec.y = dps[1] - gyro_bias.bias.y;
-        vec.z = dps[2] - gyro_bias.bias.z;
+        vec.x = 0; 
+        vec.y = 0;
+        vec.z = 0;
         measurement.data.gyroscope.gyro = vec;
         estimatorEnqueue(&measurement); 
 
@@ -192,7 +192,7 @@ static bool processAccScale(float ax, float ay, float az)
 static void sensorsBiasObjInit(BiasObj* bias)
 {
   bias->isBufferFilled = false;
-  bias->bufHead = bias->buffer;
+  bias->current_index = 0;
 }
 
 /**
@@ -231,14 +231,14 @@ static void sensorsCalculateVarianceAndMean(BiasObj* bias, Axis3f* varOut, Axis3
  */
 static void sensorsAddBiasValue(BiasObj* bias, float x, float y, float z)
 {
-  bias->bufHead->x = x;
-  bias->bufHead->y = y;
-  bias->bufHead->z = z;
-  bias->bufHead++;
+  bias->buffer[bias->current_index].x = x;
+  bias->buffer[bias->current_index].y = y;
+  bias->buffer[bias->current_index].z = z;
+  bias->current_index ++;
 
-  if (bias->bufHead >= &bias->buffer[SENSORS_NBR_OF_BIAS_SAMPLES])
+  if (bias->current_index >= SENSORS_NBR_OF_BIAS_SAMPLES)
   {
-    bias->bufHead = bias->buffer;
+    bias->current_index = 0;
     bias->isBufferFilled = true;
   }
 }

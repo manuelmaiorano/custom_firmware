@@ -98,7 +98,7 @@ to exclude the API function. */
 #define INCLUDE_pxTaskGetStackStart			1
 #define INCLUDE_xTaskGetIdleTaskHandle		1
 #define configUSE_TASK_NOTIFICATIONS        1
-
+#define configCHECK_FOR_STACK_OVERFLOW 2
 
 /* Run time and task stats gathering related definitions. */
 #define configGENERATE_RUN_TIME_STATS           0

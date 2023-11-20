@@ -81,9 +81,9 @@ void kalmanCoreDefaultParams(kalmanCoreParams_t* params)
   params->measNoiseGyro_rollpitch = 0.1f; // radians per second
   params->measNoiseGyro_yaw = 0.1f;       // radians per second
 
-  params->initialX = 0.0;
-  params->initialY = 0.0;
-  params->initialZ = 0.0;
+  params->initialX = 0.1;
+  params->initialY = 0.1;
+  params->initialZ = 0.1;
 
   // Initial yaw of the Crazyflie in radians.
   // 0 --- facing positive X
