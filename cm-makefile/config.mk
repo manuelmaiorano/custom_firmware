@@ -88,7 +88,7 @@ CXXFLAGS = $(ARCHFLAGS) $(OPTFLAGS) $(DBGFLAGS) $(CXXWARNFLAGS) $(PREPFLAGS) \
 
 # LD: Remove unused sections, link with newlib-nano implementation, generate map
 LDFLAGS = $(ARCHFLAGS) $(OPTFLAGS) $(DBGFLAGS) \
-          -Wl,-Map=$(BUILD_DIR)/$(BIN).map -Wl,--gc-sections -Wstack-usage=640\
+          -Wl,-Map=$(BUILD_DIR)/$(BIN).map -Wl,--gc-sections -Wstack-usage=100\
           $(SPECSFLAGS)
 
 # Generate object list from source files and add their dirs to search path
