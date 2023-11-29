@@ -41,7 +41,7 @@ static kalmanCoreData_t coreData;
 
 static bool isInit = false;
 
-static bool resetEstimation = false;
+static bool resetEstimation = true;
 
 
 static Axis3fSubSampler_t accSubSampler;
@@ -123,7 +123,7 @@ static void kalmanTask(void* parameters) {
     uint32_t nowMs = T2M(xTaskGetTickCount());
     uint32_t nextPredictionMs = nowMs;
     bool first = true;
-    estimatorKalmanInit();
+    //estimatorKalmanInit();
     while (true) {
         xSemaphoreTake(runTaskSemaphore, portMAX_DELAY);
         if (resetEstimation) {
@@ -131,11 +131,11 @@ static void kalmanTask(void* parameters) {
           resetEstimation = false;
         }
         nowMs = T2M(xTaskGetTickCount()); 
-        if(first) {
-          coreData.lastPredictionMs = nowMs;
-          coreData.lastProcessNoiseUpdateMs = nowMs;
-          first = false;
-        }
+        // if(first) {
+        //   coreData.lastPredictionMs = nowMs;
+        //   coreData.lastProcessNoiseUpdateMs = nowMs;
+        //   first = false;
+        // }
 
 
         if (nowMs >= nextPredictionMs) {

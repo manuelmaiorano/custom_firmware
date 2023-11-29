@@ -101,7 +101,14 @@ void setup_interrupt() {
 void sensor_task_init() {
 
     setup_interrupt();
+
+    addr = MPU6050_ADDRESS_AD0_LOW;
+    res = mpu6050_basic_init(addr);
+    assert_param(res == 0);
+    
     sensortask_handle = xTaskCreateStatic(sensor_task, "sens", SENSORS_TASK_STACKSIZE, NULL, SENSORS_TASK_PRI, sensortask_Stack, &sensortask_TCB);
+
+    isInit = true;
 }
 
 
@@ -115,12 +122,6 @@ void  EXTI9_5_IRQHandler(void)
 
 void sensor_task(void* param) {
 
-    addr = MPU6050_ADDRESS_AD0_LOW;
-    res = mpu6050_basic_init(addr);
-    assert_param(res == 0);
-
-    isInit = true;
-
     measurement_t measurement;
     Axis3f vec;
     sensorsBiasObjInit(&gyro_bias);
@@ -128,6 +129,7 @@ void sensor_task(void* param) {
     while(1) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         if (mpu6050_basic_read(g, dps) != 0){
+            vTaskDelay(10);
             mpu6050_basic_deinit();
             vTaskDelay(10);
             mpu6050_basic_init(addr);

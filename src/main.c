@@ -10,7 +10,7 @@
 #include "estimator.h"
 #include "config.h"
 
-#define STRT_TASK_STACKSIZE 2*configMINIMAL_STACK_SIZE
+#define STRT_TASK_STACKSIZE 11*configMINIMAL_STACK_SIZE
 
 TaskHandle_t start_task_handle;
 StackType_t start_task_Stack[STRT_TASK_STACKSIZE];
@@ -56,7 +56,7 @@ state_t state;
 void mock_controller_task(void* param) {
 
 	uint32_t tick_period = 1;
-	vTaskDelay(5000);
+	//vTaskDelay(5000);
 	while (1)
 	{
 		vTaskDelay(tick_period);
@@ -77,9 +77,9 @@ void start_task(void* param) {
 	HAL_GPIO_Init(ledgpio.port, &gpio_init_struct);
 
 	//SEGGER_RTT_printf(0, "starting\n");
-	kalman_init();
-	init_loco_deck();
 	sensor_task_init();
+	init_loco_deck();
+	kalman_init();
 	init_controller();
 
 	while (1)

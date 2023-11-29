@@ -120,14 +120,14 @@ static bool pooling = 1;
 
 bool spiExchange(size_t length, const uint8_t * data_tx, uint8_t * data_rx) {
 
-if(!pooling) {
-  HAL_SPI_TransmitReceive_DMA(&hspi, data_tx, data_rx, (uint16_t) length);
-  bool result = (xSemaphoreTake(txrxComplete, portMAX_DELAY) == pdTRUE);
-  return result;
-} else {
-  return HAL_SPI_TransmitReceive(&hspi, data_tx, data_rx, (uint16_t) length, 1000);
-}
- 
+  if(!pooling) {
+    HAL_SPI_TransmitReceive_DMA(&hspi, data_tx, data_rx, (uint16_t) length);
+    bool result = (xSemaphoreTake(txrxComplete, portMAX_DELAY) == pdTRUE);
+    return result;
+  } else {
+    return HAL_SPI_TransmitReceive(&hspi, data_tx, data_rx, (uint16_t) length, 1000);
+  }
+  
 
 }
 

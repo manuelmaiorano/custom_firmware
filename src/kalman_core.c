@@ -62,6 +62,7 @@ static void assertStateNotNaN(const kalmanCoreData_t* this)
 
 // Small number epsilon, to prevent dividing by zero
 #define EPS (1e-6f)
+#define COEFFICIENT 1
 
 void kalmanCoreDefaultParams(kalmanCoreParams_t* params)
 {
@@ -72,14 +73,14 @@ void kalmanCoreDefaultParams(kalmanCoreParams_t* params)
   params->stdDevInitialAttitude_rollpitch = 0.01;
   params->stdDevInitialAttitude_yaw = 0.01;
 
-  params->procNoiseAcc_xy = 0.5f;
-  params->procNoiseAcc_z = 1.0f;
-  params->procNoiseVel = 0;
-  params->procNoisePos = 0;
-  params->procNoiseAtt = 0;
-  params->measNoiseBaro = 2.0f;           // meters
-  params->measNoiseGyro_rollpitch = 0.1f; // radians per second
-  params->measNoiseGyro_yaw = 0.1f;       // radians per second
+  params->procNoiseAcc_xy = COEFFICIENT * 0.5f;
+  params->procNoiseAcc_z = COEFFICIENT * 1.0f;
+  params->procNoiseVel = COEFFICIENT * 0;
+  params->procNoisePos = COEFFICIENT * 0;
+  params->procNoiseAtt = COEFFICIENT * 0;
+  params->measNoiseBaro = COEFFICIENT * 2.0f;           // meters
+  params->measNoiseGyro_rollpitch = COEFFICIENT * 0.1f; // radians per second
+  params->measNoiseGyro_yaw = COEFFICIENT * 0.1f;       // radians per second
 
   params->initialX = 0.1;
   params->initialY = 0.1;

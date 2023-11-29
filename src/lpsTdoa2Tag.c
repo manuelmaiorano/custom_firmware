@@ -9,7 +9,7 @@
 
 #include "stabilizer_types.h"
 
-//#include "estimator.h"
+#include "estimator.h"
 
 #include "physicalConstants.h"
 #include "tdoaEngineInstance.h"
@@ -54,12 +54,6 @@ static int lppPacketSendTryCounter;
 
 static void lpsHandleLppShortPacket(const uint8_t srcId, const uint8_t *data, tdoaAnchorContext_t* anchorCtx);
 
-// Log data
-static float logUwbTdoaDistDiff[LOCODECK_NR_OF_TDOA2_ANCHORS];
-static float logClockCorrection[LOCODECK_NR_OF_TDOA2_ANCHORS];
-static uint16_t logAnchorDistance[LOCODECK_NR_OF_TDOA2_ANCHORS];
-static uint16_t logReciprocalDistances[LOCODECK_NR_OF_TDOA2_ANCHORS][LOCODECK_NR_OF_TDOA2_ANCHORS];
-
 static bool rangingOk;
 static float stdDev = TDOA_ENGINE_MEASUREMENT_NOISE_STD;
 
@@ -92,10 +86,6 @@ static void updateRemoteData(tdoaAnchorContext_t* anchorCtx, const rangePacket2_
         if (isValidTimeStamp(tof)) {
           tdoaStorageSetTimeOfFlight(anchorCtx, remoteId, tof);
 
-          logReciprocalDistances[anchorId][i] = tof;
-          if (isConsecutiveIds(previousAnchor, anchorId)) {
-            logAnchorDistance[anchorId] = packet->distances[previousAnchor];
-          }
         }
       }
     }
@@ -185,8 +175,6 @@ static bool rxcallback(dwDevice_t *dev) {
       tdoaEngineProcessPacket(&tdoaEngineState, &anchorCtx, txAn_in_cl_An, rxAn_by_T_in_cl_T);
       tdoaStorageSetRxTxData(&anchorCtx, rxAn_by_T_in_cl_T, txAn_in_cl_An, seqNr);
 
-      logClockCorrection[anchor] = tdoaStorageGetClockCorrection(&anchorCtx);
-
       previousAnchor = anchor;
 
       handleLppPacket(dataLength, &rxPacket, &anchorCtx);
@@ -256,20 +244,6 @@ static void sendTdoaToEstimatorCallback(tdoaMeasurement_t* tdoaMeasurement) {
   tdoaMeasurement->stdDev = stdDev;
 
   estimatorEnqueueTDOA(tdoaMeasurement);
-
-  #ifdef CONFIG_DECK_LOCO_2D_POSITION
-  heightMeasurement_t heightData;
-  heightData.timestamp = xTaskGetTickCount();
-  heightData.height = DECK_LOCO_2D_POSITION_HEIGHT;
-  heightData.stdDev = 0.0001;
-  estimatorEnqueueAbsoluteHeight(&heightData);
-  #endif
-
-  const uint8_t idA = tdoaMeasurement->anchorIds[0];
-  const uint8_t idB = tdoaMeasurement->anchorIds[1];
-  if (isConsecutiveIds(idA, idB)) {
-    logUwbTdoaDistDiff[idB] = tdoaMeasurement->distanceDiff;
-  }
 }
 
 
