@@ -94,12 +94,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef *hi2c) {
 
 }
 
-
 uint8_t i2c_init(void) {
-
-    tx_complete = xSemaphoreCreateBinary();
-    rx_complete = xSemaphoreCreateBinary();
-    i2c_mutex =  xSemaphoreCreateMutex();
 
     hi2c.Init.Timing = 0x6000030D;//0x20404768
     hi2c.Init.OwnAddress1 = 0x00;
@@ -116,6 +111,15 @@ uint8_t i2c_init(void) {
     assert_param(HAL_I2C_IsDeviceReady(&hi2c, 0xD0, 3, 10) == HAL_OK);
     return 0;
 
+}
+
+uint8_t i2c_begin(void) {
+    tx_complete = xSemaphoreCreateBinary();
+    rx_complete = xSemaphoreCreateBinary();
+    i2c_mutex =  xSemaphoreCreateMutex();
+
+    return i2c_init();
+    
 }
 
 uint8_t i2c_deinit() {
@@ -154,7 +158,9 @@ uint8_t i2c_read_nolock(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 uint8_t i2c_read(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
     xSemaphoreTake(i2c_mutex, portMAX_DELAY);
+    //i2c_init();
     uint8_t retval = i2c_read_nolock(addr, reg, buf, len);
+    //i2c_deinit();
     xSemaphoreGive(i2c_mutex);
     return retval;
 }
@@ -186,7 +192,9 @@ uint8_t i2c_write_nolock(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) 
 uint8_t i2c_write(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len) {
 
     xSemaphoreTake(i2c_mutex, portMAX_DELAY);
+    //i2c_init();
     uint8_t retval = i2c_write_nolock(addr, reg, buf, len);
+    //i2c_deinit();
     xSemaphoreGive(i2c_mutex);
     return retval;
 }

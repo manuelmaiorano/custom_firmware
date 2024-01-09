@@ -100,6 +100,7 @@ void setup_interrupt() {
 
 void sensor_task_init() {
 
+    i2c_begin();
     setup_interrupt();
 
     addr = MPU6050_ADDRESS_AD0_LOW;

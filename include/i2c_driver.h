@@ -1,5 +1,7 @@
 #include <stm32f7xx_hal.h>
 
+uint8_t i2c_begin(void);
+
 uint8_t i2c_init(void);
 
 uint8_t i2c_deinit(void);
