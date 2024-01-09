@@ -18,28 +18,6 @@ static void spiConfigureWithSpeed(uint16_t baudRatePrescaler);
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
 
-
-
-}
-
-
-void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi) {
-  
-  __SPI1_CLK_DISABLE();
-
-  HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
-
-  HAL_DMA_DeInit(hspi->hdmarx);
-  HAL_DMA_DeInit(hspi->hdmatx);
-
-}
-
-void spiBegin() {
-  txrxComplete = xSemaphoreCreateBinary();
-  // rxComplete = xSemaphoreCreateBinary();
-  spiMutex = xSemaphoreCreateMutex();
-
-
   __GPIOA_CLK_ENABLE();
   __SPI1_CLK_ENABLE();
   __DMA2_CLK_ENABLE();
@@ -81,8 +59,8 @@ void spiBegin() {
   dma_handle_rx.Instance = DMA2_Stream0;
   assert_param(HAL_DMA_Init(&dma_handle_rx) == HAL_OK);
 
-  __HAL_LINKDMA(&hspi, hdmatx, dma_handle_tx);
-  __HAL_LINKDMA(&hspi, hdmarx, dma_handle_rx);
+  __HAL_LINKDMA(hspi, hdmatx, dma_handle_tx);
+  __HAL_LINKDMA(hspi, hdmarx, dma_handle_rx);
 
   // Configure interrupts
   NVIC_SetPriority(DMA2_Stream5_IRQn, 7);
@@ -90,6 +68,29 @@ void spiBegin() {
 
   NVIC_SetPriority(DMA2_Stream0_IRQn, 7);
   NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+
+}
+
+
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi) {
+  
+  __SPI1_CLK_DISABLE();
+
+  HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
+
+  HAL_DMA_DeInit(hspi->hdmarx);
+  HAL_DMA_DeInit(hspi->hdmatx);
+
+  NVIC_DisableIRQ(DMA2_Stream5_IRQn);
+  NVIC_DisableIRQ(DMA2_Stream0_IRQn);
+
+}
+
+void spiBegin() {
+  txrxComplete = xSemaphoreCreateBinary();
+  // rxComplete = xSemaphoreCreateBinary();
+  spiMutex = xSemaphoreCreateMutex();
+
 
   spiConfigureWithSpeed(SPI_BAUDRATE_2MHZ);
 
@@ -112,7 +113,7 @@ static void spiConfigureWithSpeed(uint16_t baudRatePrescaler) {
   hspi.Init.TIMode = SPI_TIMODE_DISABLE;
   
   hspi.Instance = SPI1;
-  //HAL_SPI_DeInit(&hspi);
+  HAL_SPI_DeInit(&hspi);
   assert_param(HAL_SPI_Init(&hspi) == HAL_OK);
 }
 
